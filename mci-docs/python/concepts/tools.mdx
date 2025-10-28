@@ -1,0 +1,685 @@
+---
+title: "Tools"
+description: "Understand MCI tools - the core building blocks for API requests, CLI commands, file operations, and text generation"
+---
+
+# MCI Tools
+
+Tools are the core building blocks of MCI. They define individual actions that can be executed, such as API requests, CLI commands, file operations, and text generation. This document explains each tool execution type and how to use them effectively.
+
+## What are Tools?
+
+A **tool** in MCI is a reusable definition that specifies:
+
+- **What** it does (description)
+- **What inputs** it accepts (inputSchema)
+- **How** to execute it (execution configuration)
+
+Tools are the easiest way to define actions for AI agents and applications. They abstract away complexity and provide a consistent interface for different types of operations.
+
+## Tool Execution Types
+
+MCI supports four execution types:
+
+1. **HTTP** - API requests to web services
+2. **CLI** - Command-line programs and scripts
+3. **File** - Reading files with template processing
+4. **Text** - Simple text generation with templates
+
+---
+
+## HTTP Execution (API Tools)
+
+HTTP execution allows you to define API requests as tools. This is perfect for integrating with REST APIs, webhooks, and web services.
+
+### Basic API Request
+
+```json
+{
+  "name": "get_weather",
+  "description": "Fetch current weather for a city",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "city": {
+        "type": "string",
+        "description": "City name"
+      }
+    },
+    "required": ["city"]
+  },
+  "execution": {
+    "type": "http",
+    "method": "GET",
+    "url": "https://api.weather.com/v1/current",
+    "params": {
+      "city": "{{props.city}}",
+      "units": "metric"
+    },
+    "headers": {
+      "Accept": "application/json"
+    }
+  }
+}
+```
+
+### POST Request with JSON Body
+
+```json
+{
+  "name": "create_user",
+  "description": "Create a new user account",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "username": { "type": "string" },
+      "email": { "type": "string" },
+      "role": { "type": "string" }
+    },
+    "required": ["username", "email"]
+  },
+  "execution": {
+    "type": "http",
+    "method": "POST",
+    "url": "https://api.example.com/users",
+    "headers": {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer {{env.API_TOKEN}}"
+    },
+    "body": {
+      "type": "json",
+      "content": {
+        "username": "{{props.username}}",
+        "email": "{{props.email}}",
+        "role": "{{props.role}}",
+        "created_at": "{{env.TIMESTAMP}}"
+      }
+    }
+  }
+}
+```
+
+### Workflow Integration (n8n, Zapier, Make)
+
+One of the powerful features of HTTP tools is the ability to integrate workflow automation platforms like n8n, Zapier, or Make.com as agent tools:
+
+**n8n Webhook Example:**
+
+```json
+{
+  "name": "trigger_n8n_workflow",
+  "description": "Trigger an n8n workflow to process data",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "data": { "type": "object" },
+      "workflow_id": { "type": "string" }
+    }
+  },
+  "execution": {
+    "type": "http",
+    "method": "POST",
+    "url": "{{env.N8N_WEBHOOK_URL}}",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "type": "json",
+      "content": {
+        "workflowId": "{{props.workflow_id}}",
+        "data": "{{props.data}}"
+      }
+    }
+  }
+}
+```
+
+**Zapier Webhook Example:**
+
+```json
+{
+  "name": "zapier_task",
+  "description": "Send data to Zapier for processing",
+  "execution": {
+    "type": "http",
+    "method": "POST",
+    "url": "{{env.ZAPIER_WEBHOOK_URL}}",
+    "body": {
+      "type": "json",
+      "content": {
+        "task": "{{props.task}}",
+        "priority": "{{props.priority}}",
+        "assignee": "{{props.assignee}}"
+      }
+    }
+  }
+}
+```
+
+This allows agents to leverage complex workflows built in visual automation tools, combining MCI's simplicity with powerful workflow capabilities.
+
+### Authentication Options
+
+**API Key in Header:**
+
+```json
+{
+  "execution": {
+    "type": "http",
+    "url": "https://api.example.com/data",
+    "auth": {
+      "type": "apiKey",
+      "in": "header",
+      "name": "X-API-Key",
+      "value": "{{env.API_KEY}}"
+    }
+  }
+}
+```
+
+**Bearer Token:**
+
+```json
+{
+  "execution": {
+    "type": "http",
+    "url": "https://api.example.com/data",
+    "auth": {
+      "type": "bearer",
+      "token": "{{env.BEARER_TOKEN}}"
+    }
+  }
+}
+```
+
+**OAuth2:**
+
+```json
+{
+  "execution": {
+    "type": "http",
+    "url": "https://api.example.com/data",
+    "auth": {
+      "type": "oauth2",
+      "flow": "clientCredentials",
+      "tokenUrl": "https://auth.example.com/token",
+      "clientId": "{{env.CLIENT_ID}}",
+      "clientSecret": "{{env.CLIENT_SECRET}}",
+      "scopes": ["read:data", "write:data"]
+    }
+  }
+}
+```
+
+---
+
+## CLI Execution (Command-Line Tools)
+
+CLI execution allows you to run command-line programs, scripts, and system commands. This is useful for DevOps tasks, data processing, and integrating with existing command-line tools.
+
+### Basic Command
+
+```json
+{
+  "name": "list_files",
+  "description": "List files in a directory",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "directory": { "type": "string" }
+    }
+  },
+  "execution": {
+    "type": "cli",
+    "command": "ls",
+    "args": ["-la", "{{props.directory}}"]
+  }
+}
+```
+
+### Running Script Files
+
+One of the most powerful features of CLI execution is the ability to run script files directly. This works with any scripting language:
+
+**Python Script:**
+
+```json
+{
+  "name": "process_data",
+  "description": "Run Python data processing script",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "input_file": { "type": "string" },
+      "output_file": { "type": "string" }
+    }
+  },
+  "execution": {
+    "type": "cli",
+    "command": "python",
+    "args": [
+      "./scripts/process.py",
+      "--input",
+      "{{props.input_file}}",
+      "--output",
+      "{{props.output_file}}"
+    ]
+  }
+}
+```
+
+**Node.js Script:**
+
+```json
+{
+  "name": "build_project",
+  "description": "Run Node.js build script",
+  "execution": {
+    "type": "cli",
+    "command": "node",
+    "args": ["./scripts/build.js", "{{props.environment}}"]
+  }
+}
+```
+
+**PHP Script:**
+
+```json
+{
+  "name": "generate_report",
+  "description": "Generate report using PHP script",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "report_type": { "type": "string" },
+      "date_range": { "type": "string" }
+    }
+  },
+  "execution": {
+    "type": "cli",
+    "command": "php",
+    "args": [
+      "./scripts/report-generator.php",
+      "{{props.report_type}}",
+      "{{props.date_range}}"
+    ]
+  }
+}
+```
+
+**Compiled Binary:**
+
+```json
+{
+  "name": "image_processor",
+  "description": "Process images using custom binary",
+  "execution": {
+    "type": "cli",
+    "command": "./bin/image-processor",
+    "args": [
+      "--input",
+      "{{props.input_path}}",
+      "--output",
+      "{{props.output_path}}",
+      "--format",
+      "{{props.format}}"
+    ]
+  }
+}
+```
+
+### Dynamic Flags
+
+CLI tools support dynamic flags based on input properties (bool, if true = flag added):
+
+```json
+{
+  "name": "search_code",
+  "description": "Search code using grep",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "pattern": { "type": "string" },
+      "case_insensitive": { "type": "boolean" },
+      "line_numbers": { "type": "boolean" }
+    }
+  },
+  "execution": {
+    "type": "cli",
+    "command": "grep",
+    "args": ["-r", "{{props.pattern}}"],
+    "flags": {
+      "-i": {
+        "from": "props.case_insensitive",
+        "type": "boolean"
+      },
+      "-n": {
+        "from": "props.line_numbers",
+        "type": "boolean"
+      }
+    }
+  }
+}
+```
+
+### Working Directory
+
+Set a working directory for command execution:
+
+```json
+{
+  "name": "run_tests",
+  "description": "Run tests in project directory",
+  "execution": {
+    "type": "cli",
+    "command": "npm",
+    "args": ["test"],
+    "cwd": "{{props.project_path}}"
+  }
+}
+```
+
+---
+
+## File Execution (Template Files)
+
+File execution reads file contents and processes them with MCI's templating system. This is **the best way to manage prompts** because of advanced templating features that all MCI adapters support.
+
+### Why File Execution is Best for Prompts
+
+1. **Advanced Templating**: Full support for variables, conditionals, and loops
+2. **Separation of Concerns**: Keep prompts separate from code
+3. **Easy Maintenance**: Edit prompts without changing code
+4. **Version Control**: Track prompt changes in your repository
+5. **Reusability**: Same prompt templates across multiple tools
+
+### Basic File Reading
+
+```json
+{
+  "name": "load_prompt",
+  "description": "Load a prompt template",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "template_name": { "type": "string" }
+    }
+  },
+  "execution": {
+    "type": "file",
+    "path": "./prompts/{{props.template_name}}.txt",
+    "enableTemplating": true
+  }
+}
+```
+
+### Prompt Template Examples
+
+**Simple Prompt (prompts/greeting.txt):**
+
+```
+Hello {{props.username}}!
+
+You are an AI assistant helping with {{props.task}}.
+
+Current date: {{env.CURRENT_DATE}}
+```
+
+**Conditional Prompt (prompts/code-review.txt):**
+
+```
+You are a code reviewer analyzing {{props.language}} code.
+
+@if(props.strict_mode)
+Use strict standards and flag all potential issues, including style violations.
+@else
+Focus on critical bugs and major issues only.
+@endif
+
+@if(props.include_suggestions)
+Provide improvement suggestions along with your review.
+@endif
+
+Code to review:
+{{props.code}}
+```
+
+**Loop-based Prompt (prompts/batch-analysis.txt):**
+
+```
+Analyze the following items:
+
+@foreach(item in props.items)
+Item {{item.id}}: {{item.name}}
+- Category: {{item.category}}
+- Status: {{item.status}}
+
+@endforeach
+
+Provide a summary for all {{props.items.length}} items.
+```
+
+> Note: `.lenght` supported with Python adapter, since `dict` already has the needed key.
+
+### Advanced Template File
+
+**prompts/complex-task.txt:**
+
+```text
+You are assisting with: {{props.task_type}}
+
+@if(props.priority == "high")
+⚠️ HIGH PRIORITY - This task requires immediate attention.
+@endif
+
+Parameters:
+@foreach(param in props.parameters)
+- {{param.name}}: {{param.value}}
+@endforeach
+
+Context Information:
+@if(props.include_context)
+Environment: {{env.ENVIRONMENT|'production'}}
+User Role: {{env.USER_ROLE|'standard'}}
+@endif
+
+Instructions:
+@for(i in range(0, props.steps.length))
+Step {{i + 1}}: {{props.steps[i]}}
+@endfor
+
+Please proceed with the task.
+```
+
+### File Execution Without Templates
+
+You can also read files without template processing:
+
+```json
+{
+  "name": "read_config",
+  "description": "Read configuration file as-is",
+  "execution": {
+    "type": "file",
+    "path": "./config/settings.json",
+    "enableTemplating": false
+  }
+}
+```
+
+---
+
+## Text Execution (Simple Templates)
+
+Text execution returns templated text directly from the schema. This is perfect for simple messages, quick responses, or computed strings.
+
+### Basic Text
+
+```json
+{
+  "name": "welcome_message",
+  "description": "Generate a welcome message",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "name": { "type": "string" }
+    }
+  },
+  "execution": {
+    "type": "text",
+    "text": "Welcome, {{props.name}}! Thank you for joining us."
+  }
+}
+```
+
+### Text with Conditionals
+
+```json
+{
+  "name": "status_message",
+  "description": "Generate status message based on condition",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "is_active": { "type": "boolean" },
+      "username": { "type": "string" }
+    }
+  },
+  "execution": {
+    "type": "text",
+    "text": "User {{props.username}} is @if(props.is_active)currently active@else currently inactive@endif."
+  }
+}
+```
+
+### Computed Strings
+
+```json
+{
+  "name": "build_url",
+  "description": "Build a full API URL",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "endpoint": { "type": "string" },
+      "version": { "type": "string" }
+    }
+  },
+  "execution": {
+    "type": "text",
+    "text": "{{env.API_BASE_URL|'https://api.example.com'}}/{{props.version|'v1'}}/{{props.endpoint}}"
+  }
+}
+```
+
+---
+
+## Comparison Table
+
+| Feature           | HTTP                 | CLI                     | File              | Text            |
+| ----------------- | -------------------- | ----------------------- | ----------------- | --------------- |
+| **Best For**      | API calls, webhooks  | Scripts, commands       | Prompts, configs  | Simple messages |
+| **Complexity**    | Medium-High          | Medium                  | Low               | Low             |
+| **Templating**    | ✓                    | ✓                       | ✓ (Advanced)      | ✓ (Advanced)    |
+| **External Deps** | API endpoints        | System commands         | File system       | None            |
+| **Use Case**      | REST APIs, workflows | DevOps, data processing | Prompt management | Quick responses |
+
+---
+
+## Best Practices
+
+### 1. Choose the Right Type
+
+- **HTTP**: When integrating with web APIs or workflow platforms
+- **CLI**: When running existing scripts or system commands
+- **File**: When managing complex prompts or templates
+- **Text**: When generating simple, inline text
+
+### 2. Use File Execution for Prompts
+
+```json
+{
+  "name": "ai_prompt",
+  "execution": {
+    "type": "file", // ✓ Best for prompts
+    "path": "./prompts/task.txt",
+    "enableTemplating": true
+  }
+}
+```
+
+Not:
+
+```json
+{
+  "execution": {
+    "type": "text", // ✗ Limited for complex prompts
+    "text": "Very long prompt text here..."
+  }
+}
+```
+
+### 3. Leverage Script Execution
+
+Instead of inline commands, use script files:
+
+```json
+{
+  "execution": {
+    "type": "cli",
+    "command": "python", // ✓ Run script files
+    "args": ["./scripts/process.py", "{{props.input}}"]
+  }
+}
+```
+
+### 4. Keep Secrets in Environment Variables
+
+```json
+{
+  "execution": {
+    "type": "http",
+    "auth": {
+      "type": "apiKey",
+      "value": "{{env.API_KEY}}" // ✓ Use env vars
+    }
+  }
+}
+```
+
+### 5. Add Descriptive Metadata
+
+```json
+{
+  "name": "process_payment",
+  "annotations": {
+    "title": "Process Payment",
+    "destructiveHint": true,
+    "openWorldHint": true
+  },
+  "description": "Process a payment transaction via Stripe API",
+  "inputSchema": {
+    /* ... */
+  }
+}
+```
+
+### 6. Use text for static assets
+
+```json
+{
+  "execution": {
+    "type": "text",
+    "text": "https://example.com/img/logo.svg"
+  }
+}
+```
+
+## Summary
+
+- **HTTP Tools**: Perfect for API integration and workflow automation (n8n, Zapier, Make)
+- **CLI Tools**: Run scripts (.py, .js, .php) and binaries for DevOps and data processing
+- **File Tools**: The best way to manage prompts with advanced templating
+- **Text Tools**: Quick and simple text generation
+
+Each execution type serves a specific purpose. Choose based on your needs, and don't hesitate to mix different types in the same project.

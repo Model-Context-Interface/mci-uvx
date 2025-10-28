@@ -1,0 +1,680 @@
+---
+title: "Execution Types"
+description: "Complete guide to text, file, CLI, and HTTP execution types in MCI"
+---
+
+# Execution Types
+
+MCI supports four powerful execution types: **Text**, **File**, **CLI**, and **HTTP**. Each type is designed for different use cases and provides specific capabilities for tool execution.
+
+## Text Execution
+
+Return static or templated text directly. Perfect for simple messages, templates, or computed strings.
+
+### Basic Text Tool
+
+```json
+{
+  "name": "generate_welcome",
+  "title": "Welcome Message Generator",
+  "description": "Generate a welcome message with current date",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "username": {
+        "type": "string",
+        "description": "User's name"
+      }
+    },
+    "required": ["username"]
+  },
+  "execution": {
+    "type": "text",
+    "text": "Welcome {{props.username}}! Today is {{env.CURRENT_DATE}}."
+  }
+}
+```
+
+### Using Text Execution
+
+```python
+from datetime import datetime
+from mcipy import MCIClient
+
+client = MCIClient(
+    json_file_path="tools.mci.json",
+    env_vars={"CURRENT_DATE": datetime.now().strftime("%Y-%m-%d")}
+)
+
+result = client.execute(
+    tool_name="generate_welcome",
+    properties={"username": "Alice"}
+)
+
+print(result.content)  # "Welcome Alice! Today is 2024-01-15."
+```
+
+### Advanced Text Templates
+
+Text execution supports complex templating with conditional logic:
+
+```json
+{
+  "execution": {
+    "type": "text",
+    "text": "Hello {{props.username}}!\n{{@if(props.is_premium)}}Welcome back, Premium Member!{{@else}}Consider upgrading to Premium!{{@endif}}\n\nServer: {{env.SERVER_NAME}}"
+  }
+}
+```
+
+<Tip>
+  Text execution is ideal for generating reports, email templates, configuration
+  snippets, or any formatted text output.
+</Tip>
+
+## File Execution
+
+Read and return file contents with optional template substitution. Useful for loading configuration files, templates, or documentation.
+
+### Basic File Tool
+
+```json
+{
+  "name": "load_config",
+  "title": "Load Configuration File",
+  "description": "Load a configuration file with template substitution",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "config_name": {
+        "type": "string",
+        "description": "Name of the configuration"
+      }
+    },
+    "required": ["config_name"]
+  },
+  "execution": {
+    "type": "file",
+    "path": "./configs/{{props.config_name}}.conf",
+    "enableTemplating": true
+  }
+}
+```
+
+### Template File Content
+
+Create a file `configs/database.conf`:
+
+```conf database.conf
+host={{env.DB_HOST}}
+port={{env.DB_PORT}}
+user={{env.DB_USER}}
+database={{props.database_name}}
+ssl_mode={{env.SSL_MODE}}
+```
+
+### Using File Execution
+
+```python
+client = MCIClient(
+    json_file_path="tools.mci.json",
+    env_vars={
+        "DB_HOST": "localhost",
+        "DB_PORT": "5432",
+        "DB_USER": "admin",
+        "SSL_MODE": "require"
+    }
+)
+
+result = client.execute(
+    tool_name="load_config",
+    properties={
+        "config_name": "database",
+        "database_name": "production_db"
+    }
+)
+
+print(result.content)
+# Output:
+# host=localhost
+# port=5432
+# user=admin
+# database=production_db
+# ssl_mode=require
+```
+
+### File Execution Options
+
+<ParamField path="path" type="string" required>
+  Path to the file to load. Supports templating with `{{props.name}}` and `{{env.VAR}}`.
+</ParamField>
+
+<ParamField path="enableTemplating" type="boolean" default="false">
+  Whether to process template variables in the file content itself.
+</ParamField>
+
+<Warning>
+  Ensure file paths are secure and don't allow directory traversal attacks when
+  using user input in path templates.
+</Warning>
+
+## CLI Execution
+
+Execute command-line programs and capture their output. Great for running system commands, scripts, or CLI tools.
+
+### Basic CLI Tool
+
+```json
+{
+  "name": "search_files",
+  "title": "Search Files with Grep",
+  "description": "Search for text patterns in files",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "pattern": {
+        "type": "string",
+        "description": "Search pattern"
+      },
+      "directory": {
+        "type": "string",
+        "description": "Directory to search"
+      },
+      "ignore_case": {
+        "type": "boolean",
+        "description": "Ignore case when searching"
+      }
+    },
+    "required": ["pattern", "directory"]
+  },
+  "execution": {
+    "type": "cli",
+    "command": "grep",
+    "args": ["-r", "-n", "{{props.pattern}}"],
+    "flags": {
+      "-i": {
+        "from": "props.ignore_case",
+        "type": "boolean"
+      }
+    },
+    "cwd": "{{props.directory}}",
+    "timeout_ms": 8000
+  }
+}
+```
+
+### Using CLI Execution
+
+```python
+client = MCIClient(json_file_path="tools.mci.json")
+
+result = client.execute(
+    tool_name="search_files",
+    properties={
+        "pattern": "TODO",
+        "directory": "./src",
+        "ignore_case": True
+    }
+)
+
+if result.isError:
+    print(f"Error: {result.error}")
+else:
+    # Process grep output
+    lines = result.content.strip().split('\n')
+    print(f"Found {len(lines)} matches:")
+    for line in lines[:5]:  # Show first 5 matches
+        print(f"  {line}")
+```
+
+### CLI Configuration Options
+
+<ParamField path="command" type="string" required>
+  The command to execute (e.g., "grep", "python", "node", "git").
+</ParamField>
+
+<ParamField path="args" type="array">
+  Fixed arguments passed to the command. Supports templating.
+</ParamField>
+
+<ParamField path="flags" type="object">
+  Dynamic flags based on input properties.
+  <Expandable title="Flag Types">
+    <ParamField path="type" type="string" required>
+      - `"boolean"`: Include flag only if property is true - `"value"`: Include
+      flag with property value (e.g., `--file value`)
+    </ParamField>
+
+    <ParamField path="from" type="string" required>
+      Property path to get the value from (e.g., "props.verbose").
+    </ParamField>
+
+  </Expandable>
+</ParamField>
+
+<ParamField path="cwd" type="string">
+  Working directory for command execution. Supports templating.
+</ParamField>
+
+<ParamField path="timeout_ms" type="number" default="30000">
+  Maximum execution time in milliseconds.
+</ParamField>
+
+### Advanced CLI Examples
+
+<Tabs>
+<Tab title="Git Operations">
+```json
+{
+  "name": "git_status",
+  "execution": {
+    "type": "cli",
+    "command": "git",
+    "args": ["status", "--porcelain"],
+    "cwd": "{{props.repository_path}}",
+    "timeout_ms": 5000
+  }
+}
+```
+</Tab>
+
+<Tab title="Python Script">
+```json  
+{
+  "name": "run_script",
+  "execution": {
+    "type": "cli",
+    "command": "python",
+    "args": ["{{props.script_path}}"],
+    "flags": {
+      "--verbose": {
+        "from": "props.verbose",
+        "type": "boolean"
+      },
+      "--output": {
+        "from": "props.output_file", 
+        "type": "value"
+      }
+    }
+  }
+}
+```
+</Tab>
+
+<Tab title="Docker Commands">
+```json
+{
+  "name": "docker_ps",
+  "execution": {
+    "type": "cli", 
+    "command": "docker",
+    "args": ["ps"],
+    "flags": {
+      "--all": {
+        "from": "props.show_all",
+        "type": "boolean"  
+      },
+      "--format": {
+        "from": "props.format",
+        "type": "value"
+      }
+    }
+  }
+}
+```
+</Tab>
+</Tabs>
+
+## HTTP Execution
+
+Make HTTP requests to APIs with full support for authentication, headers, query parameters, and request bodies.
+
+### Basic GET Request
+
+```json
+{
+  "name": "get_weather",
+  "title": "Get Weather Information",
+  "description": "Fetch current weather for a location",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "location": {
+        "type": "string",
+        "description": "City name"
+      }
+    },
+    "required": ["location"]
+  },
+  "execution": {
+    "type": "http",
+    "method": "GET",
+    "url": "https://api.example.com/weather",
+    "params": {
+      "location": "{{props.location}}",
+      "units": "metric"
+    },
+    "headers": {
+      "Accept": "application/json"
+    },
+    "timeout_ms": 5000
+  }
+}
+```
+
+### POST Request with JSON Body
+
+```json
+{
+  "name": "create_report",
+  "title": "Create Report",
+  "description": "Create a new report via API",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "title": { "type": "string" },
+      "content": { "type": "string" }
+    },
+    "required": ["title", "content"]
+  },
+  "execution": {
+    "type": "http",
+    "method": "POST",
+    "url": "https://api.example.com/reports",
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "type": "json",
+      "content": {
+        "title": "{{props.title}}",
+        "content": "{{props.content}}",
+        "timestamp": "{{env.CURRENT_TIMESTAMP}}"
+      }
+    },
+    "timeout_ms": 10000
+  }
+}
+```
+
+### Authentication Options
+
+<Tabs>
+<Tab title="API Key (Header)">
+```json
+{
+  "execution": {
+    "type": "http",
+    "method": "GET",
+    "url": "https://api.example.com/data",
+    "auth": {
+      "type": "apiKey",
+      "in": "header", 
+      "name": "X-API-Key",
+      "value": "{{env.API_KEY}}"
+    }
+  }
+}
+```
+</Tab>
+
+<Tab title="API Key (Query)">
+```json
+{
+  "execution": {
+    "type": "http",
+    "method": "GET", 
+    "url": "https://api.example.com/data",
+    "auth": {
+      "type": "apiKey",
+      "in": "query",
+      "name": "api_key",
+      "value": "{{env.API_KEY}}"
+    }
+  }
+}
+```
+</Tab>
+
+<Tab title="Bearer Token">
+```json
+{
+  "execution": {
+    "type": "http",
+    "method": "POST",
+    "url": "https://api.example.com/data",
+    "auth": {
+      "type": "bearer",
+      "token": "{{env.BEARER_TOKEN}}"
+    }
+  }
+}
+```
+</Tab>
+
+<Tab title="Basic Auth">
+```json
+{
+  "execution": {
+    "type": "http", 
+    "method": "GET",
+    "url": "https://api.example.com/data",
+    "auth": {
+      "type": "basic",
+      "username": "{{env.USERNAME}}",
+      "password": "{{env.PASSWORD}}"
+    }
+  }
+}
+```
+</Tab>
+</Tabs>
+
+### Request Body Types
+
+<Tabs>
+<Tab title="JSON Body">
+```json
+{
+  "body": {
+    "type": "json",
+    "content": {
+      "user_id": "{{props.user_id}}",
+      "data": "{{props.data}}"
+    }
+  }
+}
+```
+</Tab>
+
+<Tab title="Form Body">
+```json
+{
+  "body": {
+    "type": "form", 
+    "content": {
+      "field1": "{{props.value1}}",
+      "field2": "{{props.value2}}"
+    }
+  }
+}
+```
+</Tab>
+
+<Tab title="Raw Body">
+```json
+{
+  "body": {
+    "type": "raw",
+    "content": "custom={{props.data}}&format=xml"
+  }
+}
+```
+</Tab>
+</Tabs>
+
+### Using HTTP Execution
+
+```python
+from datetime import datetime
+from mcipy import MCIClient
+
+client = MCIClient(
+    json_file_path="api-tools.mci.json",
+    env_vars={
+        "API_KEY": "your-secret-key",
+        "BEARER_TOKEN": "your-bearer-token",
+        "CURRENT_TIMESTAMP": datetime.now().isoformat()
+    }
+)
+
+# Execute GET request
+weather_result = client.execute(
+    tool_name="get_weather",
+    properties={"location": "New York"}
+)
+
+if not weather_result.isError:
+    import json
+    try:
+        weather_data = json.loads(weather_result.content)
+        print(f"Temperature: {weather_data.get('temperature')}°C")
+    except json.JSONDecodeError:
+        print("Invalid JSON response")
+
+# Execute POST request
+report_result = client.execute(
+    tool_name="create_report",
+    properties={
+        "title": "Q1 Sales Report",
+        "content": "Sales increased by 15%"
+    }
+)
+
+if not report_result.isError:
+    print(f"Report created: {report_result.content}")
+```
+
+### HTTP Configuration Options
+
+<ParamField path="method" type="string" required>
+  HTTP method: GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS
+</ParamField>
+
+<ParamField path="url" type="string" required>
+  Target URL. Supports templating for dynamic URLs.
+</ParamField>
+
+<ParamField path="headers" type="object">
+  HTTP headers as key-value pairs. Supports templating.
+</ParamField>
+
+<ParamField path="params" type="object">
+  Query parameters as key-value pairs. Supports templating.
+</ParamField>
+
+<ParamField path="body" type="object">
+  Request body configuration.
+  <Expandable title="Body Types">
+    <ResponseField name="json" type="object">
+      JSON body with automatic Content-Type header.
+    </ResponseField>
+
+    <ResponseField name="form" type="object">
+      Form-encoded body with appropriate Content-Type.
+    </ResponseField>
+
+    <ResponseField name="raw" type="string">
+      Raw string body for custom formats.
+    </ResponseField>
+
+  </Expandable>
+</ParamField>
+
+<ParamField path="auth" type="object">
+  Authentication configuration.
+</ParamField>
+
+<ParamField path="timeout_ms" type="number" default="30000">
+  Request timeout in milliseconds.
+</ParamField>
+
+## Execution Type Comparison
+
+<CardGroup cols={2}>
+<Card title="Text Execution" icon="text">
+  **Best for**: Templates, reports, messages
+  
+  **Pros**: Simple, fast, no dependencies
+  
+  **Cons**: Static output only
+</Card>
+
+<Card title="File Execution" icon="file">
+  **Best for**: Configs, templates, documentation **Pros**: Supports templating,
+  file system access **Cons**: Requires file system access
+</Card>
+
+<Card title="CLI Execution" icon="terminal">
+  **Best for**: System commands, scripts, tools **Pros**: Access to system
+  utilities, flexible **Cons**: Platform-dependent, security considerations
+</Card>
+
+<Card title="HTTP Execution" icon="globe">
+  **Best for**: API integration, web services
+  
+  **Pros**: Rich protocol support, authentication
+  
+  **Cons**: Network dependency, API rate limits
+</Card>
+</CardGroup>
+
+## Best Practices
+
+### Security
+
+<Warning>
+  **CLI Execution**: Validate and sanitize all user/LLM inputs to prevent
+  command injection attacks/errors.
+</Warning>
+
+<Warning>
+  **File Execution**: Use absolute paths or restrict file access to prevent
+  directory traversal.
+</Warning>
+
+<Warning>
+  **HTTP Execution**: Always use HTTPS for sensitive data and store API keys in
+  environment variables.
+</Warning>
+
+### Performance
+
+<Tip>
+  Set appropriate timeouts for each execution type to prevent tools from hanging
+  indefinitely.
+</Tip>
+
+<Tip>
+  Use caching for expensive operations, especially for HTTP requests that return
+  static data.
+</Tip>
+
+### Error Handling
+
+<Tip>
+  Always check `result.isError` before processing tool outputs, and provide
+  meaningful error messages to users.
+</Tip>
+
+## Next Steps
+
+<CardGroup cols={2}>
+<Card title="Advanced Features" icon="rocket" href="/python/advanced-features">
+  Learn about environment management, filtering, and optimization
+</Card>
+
+<Card title="API Reference" icon="book" href="/api_reference">
+  Detailed documentation of all classes and methods
+</Card>
+</CardGroup>

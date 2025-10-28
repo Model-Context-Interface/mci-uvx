@@ -1,0 +1,707 @@
+---
+title: "Templates"
+description: "Master MCI's powerful templating system with variables, conditionals, loops, and cross-adapter compatibility"
+---
+
+# MCI Templates
+
+MCI includes a powerful templating system that works consistently across all adapters (Python, JavaScript, Go, etc.). This document covers the standard templating features available in every MCI adapter.
+
+## Overview
+
+The MCI templating system allows you to inject dynamic values into your tool definitions, file content, and text output. It supports:
+
+- **Variable substitution** with `{{}}` syntax
+- **Default values** with pipe operator `|`
+- **Conditional blocks** with `@if`, `@elseif`, `@else`, `@endif`
+- **For loops** with `@for` and `range()`
+- **Foreach loops** with `@foreach` for arrays and objects
+
+**Important**: All features described here are part of the MCI standard and are supported by every adapter. Some adapters may provide additional language-specific templating (e.g., Jinja2 in Python), but check adapter documentation for those extensions.
+
+## Where Templates are Used
+
+Templates work in:
+
+1. **MCI Schema Files** (`.mci.json`, `.mci.yaml`)
+2. **File Execution** content (when `enableTemplating: true`)
+3. **Text Execution** content
+
+## Basic Variable Substitution
+
+### Syntax
+
+Use double curly braces to reference variables:
+
+```
+{{context.variable}}
+```
+
+### Available Contexts
+
+| Context | Access                  | Description                             |
+| ------- | ----------------------- | --------------------------------------- |
+| `props` | `{{props.fieldName}}`   | Input properties passed to the tool     |
+| `env`   | `{{env.VARIABLE_NAME}}` | Environment variables                   |
+| `input` | `{{input.fieldName}}`   | Alias for `props` (legacy, use `props`) |
+
+### Examples in JSON
+
+**Tool Definition:**
+
+```json
+{
+  "name": "create_user",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "username": { "type": "string" },
+      "email": { "type": "string" }
+    }
+  },
+  "execution": {
+    "type": "http",
+    "method": "POST",
+    "url": "{{env.API_BASE_URL}}/users",
+    "headers": {
+      "Authorization": "Bearer {{env.API_TOKEN}}",
+      "X-Request-ID": "{{props.request_id}}"
+    },
+    "body": {
+      "type": "json",
+      "content": {
+        "username": "{{props.username}}",
+        "email": "{{props.email}}",
+        "created_at": "{{env.TIMESTAMP}}"
+      }
+    }
+  }
+}
+```
+
+**File Execution:**
+
+```json
+{
+  "name": "load_template",
+  "execution": {
+    "type": "file",
+    "path": "./templates/{{props.template_name}}.txt",
+    "enableTemplating": true
+  }
+}
+```
+
+**Text Execution:**
+
+```json
+{
+  "name": "greeting",
+  "execution": {
+    "type": "text",
+    "text": "Hello {{props.username}}! Welcome to {{env.APP_NAME}}."
+  }
+}
+```
+
+### Nested Properties
+
+Access nested object properties with dot notation:
+
+```json
+{
+  "execution": {
+    "type": "http",
+    "url": "https://api.example.com/users/{{props.user.id}}/posts/{{props.post.id}}"
+  }
+}
+```
+
+## Default Values
+
+Use the pipe operator `|` to provide default values when variables are not set:
+
+### Syntax
+
+```
+{{context.variable|'default_value'}}
+```
+
+### Examples in JSON
+
+**With Environment Variables:**
+
+```json
+{
+  "execution": {
+    "type": "http",
+    "url": "{{env.API_URL|'https://api.example.com'}}/data",
+    "timeout_ms": "{{env.TIMEOUT|'5000'}}"
+  }
+}
+```
+
+**With Properties:**
+
+```json
+{
+  "execution": {
+    "type": "cli",
+    "command": "{{env.PYTHON_BIN|'python3'}}",
+    "args": [
+      "--host",
+      "{{props.host|'localhost'}}",
+      "--port",
+      "{{props.port|'8080'}}",
+      "--verbose",
+      "{{props.verbose|'false'}}"
+    ]
+  }
+}
+```
+
+**In File Paths:**
+
+```json
+{
+  "execution": {
+    "type": "file",
+    "path": "{{env.CONFIG_DIR|'./config'}}/{{props.env|'development'}}.json"
+  }
+}
+```
+
+### Multiple Levels
+
+```json
+{
+  "url": "{{env.API_URL|env.FALLBACK_URL|'https://api.example.com'}}"
+}
+```
+
+## Conditional Blocks
+
+Conditionals allow you to include or exclude content based on conditions.
+
+### Syntax
+
+```
+@if(condition)
+  content when true
+@endif
+```
+
+```
+@if(condition)
+  content when true
+@else
+  content when false
+@endif
+```
+
+```
+@if(condition1)
+  content when condition1 is true
+@elseif(condition2)
+  content when condition2 is true
+@else
+  content when all conditions are false
+@endif
+```
+
+### Supported Conditions
+
+| Type         | Syntax                 | Example                         |
+| ------------ | ---------------------- | ------------------------------- |
+| Truthy       | `@if(path.to.value)`   | `@if(props.enabled)`            |
+| Equality     | `@if(path == "value")` | `@if(props.status == "active")` |
+| Inequality   | `@if(path != "value")` | `@if(props.role != "admin")`    |
+| Greater than | `@if(path > value)`    | `@if(props.age > 18)`           |
+| Less than    | `@if(path < value)`    | `@if(props.count < 100)`        |
+
+### Examples in File Templates
+
+**Simple Conditional (template.txt):**
+
+```
+Welcome to the application!
+
+@if(props.premium)
+You have access to premium features.
+@else
+Upgrade to premium for more features.
+@endif
+```
+
+**Multiple Conditions (report.txt):**
+
+```
+Report for: {{props.username}}
+
+@if(props.status == "active")
+Status: Active - All systems operational
+@elseif(props.status == "pending")
+Status: Pending - Awaiting approval
+@elseif(props.status == "suspended")
+Status: Suspended - Contact support
+@else
+Status: Unknown
+@endif
+```
+
+**Numeric Comparison (access.txt):**
+
+```
+User: {{props.username}}
+
+@if(props.age >= 18)
+✓ Access granted to adult content
+@else
+✗ Access restricted - Must be 18 or older
+@endif
+
+@if(props.credits > 0)
+Available credits: {{props.credits}}
+@else
+No credits remaining - Please purchase more
+@endif
+```
+
+### Examples in Text Execution
+
+```json
+{
+  "name": "status_check",
+  "execution": {
+    "type": "text",
+    "text": "@if(props.online)Server is online and responding@else Server is offline or not responding@endif"
+  }
+}
+```
+
+### XML-Style Conditionals
+
+Some file types (like XML) benefit from explicit conditional syntax:
+
+**config.xml:**
+
+```xml
+<?xml version="1.0"?>
+<configuration>
+  <database>
+    <host>{{env.DB_HOST|'localhost'}}</host>
+    <port>{{env.DB_PORT|'5432'}}</port>
+  </database>
+
+  @if(props.enable_cache)
+  <cache>
+    <enabled>true</enabled>
+    <ttl>{{props.cache_ttl|'3600'}}</ttl>
+  </cache>
+  @endif
+
+  @if(props.environment == "production")
+  <logging>
+    <level>error</level>
+  </logging>
+  @else
+  <logging>
+    <level>debug</level>
+  </logging>
+  @endif
+</configuration>
+```
+
+## For Loops
+
+For loops iterate a fixed number of times using a range.
+
+### Syntax
+
+```
+@for(variable in range(start, end))
+  content with {{variable}}
+@endfor
+```
+
+- `start`: Starting value (inclusive)
+- `end`: Ending value (exclusive)
+- Standard programming range: [start, end)
+
+### Examples in File Templates
+
+**Simple Loop (list.txt):**
+
+```
+Items:
+@for(i in range(0, 5))
+  {{i}}. Item number {{i}}
+@endfor
+```
+
+**Output:**
+
+```
+Items:
+  0. Item number 0
+  1. Item number 1
+  2. Item number 2
+  3. Item number 3
+  4. Item number 4
+```
+
+**Loop with Variables (report.txt):**
+
+```
+Report Summary:
+
+@for(i in range(1, 11))
+Week {{i}}: {{props.weekly_data[i - 1]}}
+@endfor
+```
+
+**Loop in JSON-like Format:**
+
+```json
+{
+  "name": "generate_numbers",
+  "execution": {
+    "type": "text",
+    "text": "Numbers: @for(i in range(0, 10)){{i}} @endfor"
+  }
+}
+```
+
+**Output:**
+
+```
+Numbers: 0 1 2 3 4 5 6 7 8 9
+```
+
+## Foreach Loops
+
+Foreach loops iterate over arrays or object properties from your data.
+
+### Syntax
+
+```
+@foreach(variable in path.to.array)
+  content with {{variable}}
+@endforeach
+```
+
+### Examples with Arrays
+
+**Array Iteration (list.txt):**
+
+```
+Available Items:
+@foreach(item in props.items)
+- {{item}}
+@endforeach
+```
+
+**Input:**
+
+```json
+{
+  "items": ["Apple", "Banana", "Cherry", "Date"]
+}
+```
+
+**Output:**
+
+```
+Available Items:
+- Apple
+- Banana
+- Cherry
+- Date
+```
+
+### Examples with Object Arrays
+
+**Complex Objects (users.txt):**
+
+```
+User List:
+
+@foreach(user in props.users)
+Name: {{user.name}}
+Email: {{user.email}}
+Role: {{user.role}}
+---
+@endforeach
+```
+
+**Input:**
+
+```json
+{
+  "users": [
+    { "name": "Alice", "email": "alice@example.com", "role": "admin" },
+    { "name": "Bob", "email": "bob@example.com", "role": "user" },
+    { "name": "Charlie", "email": "charlie@example.com", "role": "user" }
+  ]
+}
+```
+
+**Output:**
+
+```
+User List:
+
+Name: Alice
+Email: alice@example.com
+Role: admin
+---
+Name: Bob
+Email: bob@example.com
+Role: user
+---
+Name: Charlie
+Email: charlie@example.com
+Role: user
+---
+```
+
+### Nested Foreach
+
+```
+@foreach(category in props.categories)
+Category: {{category.name}}
+  @foreach(item in category.items)
+  - {{item.name}}: ${{item.price}}
+  @endforeach
+@endforeach
+```
+
+### XML Example
+
+**data.xml:**
+
+```xml
+<?xml version="1.0"?>
+<data>
+  <timestamp>{{env.TIMESTAMP}}</timestamp>
+
+  <users>
+    @foreach(user in props.users)
+    <user>
+      <id>{{user.id}}</id>
+      <name>{{user.name}}</name>
+      <email>{{user.email}}</email>
+      @if(user.active)
+      <status>active</status>
+      @else
+      <status>inactive</status>
+      @endif
+    </user>
+    @endforeach
+  </users>
+</data>
+```
+
+## Combining Features
+
+You can combine variables, defaults, conditionals, and loops:
+
+### Example 1: Complex Template
+
+**prompt.txt:**
+
+```
+Task: {{props.task_type}}
+User: {{props.username|'Guest'}}
+Environment: {{env.ENVIRONMENT|'development'}}
+
+@if(props.priority == "high")
+⚠️ HIGH PRIORITY TASK
+@endif
+
+Instructions:
+@for(i in range(1, props.step_count + 1))
+Step {{i}}:
+  @if(props.steps[i - 1])
+  {{props.steps[i - 1]}}
+  @else
+  (Step not defined)
+  @endif
+@endfor
+
+Resources:
+@foreach(resource in props.resources)
+- {{resource.name}} ({{resource.type}}): {{resource.url}}
+@endforeach
+
+@if(props.include_notes)
+Additional Notes:
+{{props.notes|'No additional notes provided'}}
+@endif
+```
+
+### Example 2: JSON Configuration Template
+
+**config-template.json (loaded via file execution):**
+
+```json
+{
+  "appName": "{{env.APP_NAME|'MyApp'}}",
+  "version": "{{props.version|'1.0.0'}}",
+  "environment": "{{env.ENVIRONMENT|'development'}}",
+
+  @if(props.enable_database)
+  "database": {
+    "host": "{{env.DB_HOST|'localhost'}}",
+    "port": {{env.DB_PORT|'5432'}},
+    "name": "{{env.DB_NAME|'myapp'}}"
+  },
+  @endif
+
+  "features": {
+    @foreach(feature in props.features)
+    "{{feature.name}}": {{feature.enabled}}
+    @endforeach
+  }
+}
+```
+
+### Example 3: XML Report
+
+**report.xml:**
+
+```xml
+<?xml version="1.0"?>
+<report>
+  <metadata>
+    <generated>{{env.TIMESTAMP}}</generated>
+    <user>{{props.username}}</user>
+    <type>{{props.report_type}}</type>
+  </metadata>
+
+  @if(props.summary)
+  <summary>
+    <total>{{props.summary.total}}</total>
+    <successful>{{props.summary.successful}}</successful>
+    <failed>{{props.summary.failed}}</failed>
+  </summary>
+  @endif
+
+  <items>
+    @foreach(item in props.items)
+    <item id="{{item.id}}">
+      <name>{{item.name}}</name>
+      <status>{{item.status}}</status>
+
+      @if(item.status == "error")
+      <error>
+        <message>{{item.error_message}}</message>
+        <code>{{item.error_code}}</code>
+      </error>
+      @endif
+
+      @if(item.metrics)
+      <metrics>
+        @foreach(metric in item.metrics)
+        <metric name="{{metric.name}}">{{metric.value}}</metric>
+        @endforeach
+      </metrics>
+      @endif
+    </item>
+    @endforeach
+  </items>
+</report>
+```
+
+## Best Practices
+
+### 1. Use Defaults for Configuration
+
+```json
+{
+  "execution": {
+    "type": "http",
+    "url": "{{env.API_URL|'https://api.example.com'}}",
+    "timeout_ms": "{{env.TIMEOUT|'5000'}}"
+  }
+}
+```
+
+### 2. Keep File Templates for Complex Logic
+
+**Instead of:**
+
+```json
+{
+  "execution": {
+    "type": "text",
+    "text": "Very long template with @if and @foreach..."
+  }
+}
+```
+
+**Use:**
+
+```json
+{
+  "execution": {
+    "type": "file",
+    "path": "./templates/complex.txt",
+    "enableTemplating": true
+  }
+}
+```
+
+### 3. Use Descriptive Variable Names
+
+✓ Good:
+
+```
+{{props.user_email}}
+{{env.DATABASE_URL}}
+{{props.report_type}}
+```
+
+✗ Avoid:
+
+```
+{{props.e}}
+{{env.URL}}
+{{props.t}}
+```
+
+### 4. Validate Required Variables
+
+Use `inputSchema` to require necessary properties:
+
+```json
+{
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "username": { "type": "string" },
+      "email": { "type": "string" }
+    },
+    "required": ["username", "email"]
+  }
+}
+```
+
+## Adapter-Specific Extensions
+
+While the features described here work in all MCI adapters, some adapters may provide additional templating capabilities.
+
+**Always rely on standard MCI templating for cross-adapter compatibility.**
+
+## Summary
+
+- **Variable Substitution**: `{{props.field}}`, `{{env.VAR}}`
+- **Defaults**: `{{env.VAR|'default'}}`
+- **Conditionals**: `@if`, `@elseif`, `@else`, `@endif`
+- **For Loops**: `@for(i in range(start, end))`
+- **Foreach Loops**: `@foreach(item in props.items)`
+- **Standard Across Adapters**: All features should work in any adapter.
+- **File Templates**: Best for complex logic
+- **JSON & XML**: Templates work in any text format
+
+The MCI templating system provides powerful, consistent templating across all adapters, making your tools portable and maintainable.

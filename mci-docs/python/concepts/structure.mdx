@@ -1,0 +1,583 @@
+---
+title: "Structure"
+description: "Learn how to organize MCI projects with entry files, toolsets, MCP server caching, and basic templating patterns"
+---
+
+# MCI Structure
+
+This document explains the structural organization of MCI projects, including entry files, toolsets, MCP server caching, and basic templating patterns.
+
+## Entry Files
+
+MCI projects start with one or more **entry files** located in the root of your project directory. These are the main schema files that define your tool collections.
+
+### Single Entry File
+
+The simplest structure uses a single entry file:
+
+```
+my-project/
+├── mci.json           # Main entry file
+├── mci/               # Toolsets directory (optional)
+│   └── weather.mci.json
+└── src/               # Your application code
+```
+
+**Example: `mci.json`**
+
+```json
+{
+  "schemaVersion": "1.0",
+  "metadata": {
+    "name": "My Application Tools"
+  },
+  "tools": [
+    {
+      "name": "main_tool",
+      "description": "Primary tool for the application",
+      "execution": {
+        "type": "text",
+        "text": "Main application output"
+      }
+    }
+  ]
+}
+```
+
+### Multiple Entry Files
+
+You can have multiple entry files, each creating a specific set of tools for different purposes:
+
+```
+my-project/
+├── api-tools.mci.json         # API-related tools
+├── dev-tools.mci.json         # Development tools
+├── production-tools.mci.json  # Production-only tools
+├── mci/
+│   ├── database.mci.json
+│   ├── logging.mci.json
+│   └── monitoring.mci.json
+└── src/
+```
+
+**Example: Multiple contexts for different environments**
+
+**api-tools.mci.json:**
+
+```json
+{
+  "schemaVersion": "1.0",
+  "metadata": {
+    "name": "API Tools"
+  },
+  "toolsets": [{ "name": "database" }, { "name": "logging" }],
+  "tools": [
+    {
+      "name": "api_health_check",
+      "execution": {
+        "type": "http",
+        "url": "https://api.example.com/health"
+      }
+    }
+  ]
+}
+```
+
+**dev-tools.mci.json:**
+
+```json
+{
+  "schemaVersion": "1.0",
+  "metadata": {
+    "name": "Development Tools"
+  },
+  "toolsets": [
+    { "name": "database" },
+    { "name": "logging" },
+    { "name": "monitoring" }
+  ],
+  "tools": [
+    {
+      "name": "run_tests",
+      "execution": {
+        "type": "cli",
+        "command": "pytest",
+        "args": ["--verbose"]
+      }
+    }
+  ]
+}
+```
+
+**Key Points:**
+
+- Each entry file is independent and creates its own set of tools
+- Entry files can share toolsets from the `./mci` directory
+- Use multiple entry files to organize tools by environment, team, or purpose
+- No limit on the number of entry files (1, 3, 10, or more)
+- Each entry file must be loaded separately by the client; multiple entry files are not automatically merged and each requires its own MCIClient instance.
+
+## Toolsets Directory
+
+Toolsets are stored in the `./mci` directory by default. This can be customized using the `libraryDir` field.
+
+### Default Structure
+
+```
+my-project/
+├── main.mci.json      # Entry file
+└── mci/               # Default toolsets directory
+    ├── weather.mci.json
+    ├── database.mci.json
+    ├── github.mci.json
+    └── monitoring.mci.json
+```
+
+### Custom Library Directory
+
+You can use a different directory name:
+
+```json
+{
+  "schemaVersion": "1.0",
+  "libraryDir": "./toolsets", // Custom directory
+  "toolsets": [{ "name": "weather" }]
+}
+```
+
+```
+my-project/
+├── main.mci.json
+└── toolsets/          # Custom toolsets directory
+    └── weather.mci.json
+```
+
+### Nested Toolset Organization
+
+Organize toolsets in subdirectories:
+
+```
+my-project/
+└── mci/
+    ├── external/
+    │   ├── github.mci.json
+    │   ├── slack.mci.json
+    │   └── weather.mci.json
+    ├── internal/
+    │   ├── database.mci.json
+    │   ├── logging.mci.json
+    │   └── monitoring.mci.json
+    └── mcp/            # MCP cache (auto-generated)
+        ├── filesystem.mci.json
+        └── memory.mci.json
+```
+
+**Loading nested toolsets:**
+
+```json
+{
+  "toolsets": [
+    { "name": "external/github" },
+    { "name": "external/weather" },
+    { "name": "internal/database" }
+  ]
+}
+```
+
+## MCP Tools Cache
+
+When you register MCP servers in your schema, MCI automatically caches the tools in a special `mcp` subdirectory within your toolsets directory.
+
+### Cache Location
+
+```
+my-project/
+├── main.mci.json
+└── mci/
+    ├── weather.mci.json      # Regular toolset
+    ├── database.mci.json     # Regular toolset
+    └── mcp/                  # MCP cache directory
+        ├── filesystem.mci.json
+        ├── github.mci.json
+        └── memory.mci.json
+```
+
+### How It Works
+
+1. **Register MCP Server** in your entry file:
+
+```json
+{
+  "schemaVersion": "1.0",
+  "mcp_servers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/workspace"]
+    }
+  }
+}
+```
+
+2. **First Load**: MCI connects to the MCP server, fetches all tools, and saves them to `./mci/mcp/filesystem.mci.json`
+
+3. **Subsequent Loads**: MCI uses the cached file instead of connecting to the server (much faster)
+
+4. **Cache File Example** (`./mci/mcp/filesystem.mci.json`):
+
+```json
+{
+  "schemaVersion": "1.0",
+  "metadata": {
+    "name": "filesystem MCP Server",
+    "description": "Auto-generated toolset from MCP server"
+  },
+  "expiresAt": "2024-02-15T10:30:00Z",
+  "tools": [
+    {
+      "name": "read_file",
+      "description": "Read contents of a file",
+      "execution": {
+        "type": "mcp",
+        "serverName": "filesystem",
+        "toolName": "read_file"
+      }
+    },
+    {
+      "name": "write_file",
+      "description": "Write content to a file",
+      "execution": {
+        "type": "mcp",
+        "serverName": "filesystem",
+        "toolName": "write_file"
+      }
+    }
+  ]
+}
+```
+
+### Cache Management
+
+**Expiration**: Caches expire after a configurable number of days (default: 30):
+
+```json
+{
+  "mcp_servers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["..."],
+      "config": {
+        "expDays": 7 // Refresh every 7 days
+      }
+    }
+  }
+}
+```
+
+**Manual Refresh**: Delete cache files to force re-fetch:
+
+```bash
+rm -rf ./mci/mcp/
+```
+
+**Git Ignore**: Add MCP cache to `.gitignore`:
+
+```
+mci/mcp/
+```
+
+## Basic Templating
+
+MCI supports templating in all schema files using the `{{}}` syntax. This allows dynamic values from environment variables and provides default fallbacks.
+
+### Environment Variable Templating
+
+**Syntax**: `{{env.VARIABLE_NAME}}`
+
+```json
+{
+  "tools": [
+    {
+      "name": "api_call",
+      "execution": {
+        "type": "http",
+        "url": "{{env.API_BASE_URL}}/users",
+        "auth": {
+          "type": "apiKey",
+          "in": "header",
+          "name": "X-API-Key",
+          "value": "{{env.API_KEY}}"
+        }
+      }
+    }
+  ]
+}
+```
+
+### Default Values with Pipe Operator
+
+**Syntax**: `{{env.VARIABLE_NAME|'default_value'}}`
+
+The pipe operator (`|`) allows you to specify a default value if the environment variable is not set:
+
+```json
+{
+  "tools": [
+    {
+      "name": "connect_db",
+      "execution": {
+        "type": "cli",
+        "command": "psql",
+        "args": [
+          "-h",
+          "{{env.DB_HOST|'localhost'}}",
+          "-p",
+          "{{env.DB_PORT|'5432'}}",
+          "-U",
+          "{{env.DB_USER|'postgres'}}",
+          "-d",
+          "{{env.DB_NAME|'myapp'}}"
+        ]
+      }
+    }
+  ]
+}
+```
+
+**Without environment variables:**
+
+- `{{env.DB_HOST|'localhost'}}` → `"localhost"`
+- `{{env.DB_PORT|'5432'}}` → `"5432"`
+- `{{env.DB_USER|'postgres'}}` → `"postgres"`
+
+**With environment variables set:**
+
+- `{{env.DB_HOST|'localhost'}}` → `"production.db.example.com"`
+- `{{env.DB_PORT|'5432'}}` → `"3306"`
+
+> Note: This allows any amount of vars (but keep it under 5, please): `{{env.DB_HOST|env.EXTERNAL_DB_HOST|'localhost'}}`
+
+### MCI File Templating Examples
+
+#### Example 1: API Configuration with Defaults
+
+```json
+{
+  "schemaVersion": "1.0",
+  "tools": [
+    {
+      "name": "fetch_users",
+      "execution": {
+        "type": "http",
+        "method": "GET",
+        "url": "{{env.API_URL|'https://api.example.com}}/users'",
+        "headers": {
+          "Authorization": "Bearer {{env.API_TOKEN}}",
+          "Accept": "application/json"
+        },
+        "timeout_ms": "{{env.REQUEST_TIMEOUT|'5000'}}"
+      }
+    }
+  ]
+}
+```
+
+#### Example 2: CLI Tools with Environment Defaults
+
+```json
+{
+  "schemaVersion": "1.0",
+  "tools": [
+    {
+      "name": "deploy_app",
+      "execution": {
+        "type": "cli",
+        "command": "{{env.DEPLOY_TOOL|'kubectl'}}",
+        "args": [
+          "apply",
+          "-f",
+          "{{env.CONFIG_PATH|'./k8s/deployment.yaml'}}",
+          "--namespace",
+          "{{env.NAMESPACE|'default'}}"
+        ],
+        "cwd": "{{env.PROJECT_ROOT|'.'}}"
+      }
+    }
+  ]
+}
+```
+
+#### Example 3: MCP Server with Template Defaults
+
+```json
+{
+  "schemaVersion": "1.0",
+  "mcp_servers": {
+    "filesystem": {
+      "command": "{{env.MCP_RUNNER|'npx'}}",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "{{env.WORKSPACE_PATH|'/tmp'}}"
+      ],
+      "env": {
+        "LOG_LEVEL": "{{env.LOG_LEVEL|'info'}}",
+        "MAX_FILE_SIZE": "{{env.MAX_FILE_SIZE|'10485760'}}"
+      }
+    }
+  }
+}
+```
+
+#### Example 4: Toolset Reference with Filtering
+
+```json
+{
+  "schemaVersion": "1.0",
+  "libraryDir": "{{env.TOOLSETS_DIR|'./mci'}}",
+  "toolsets": [
+    {
+      "name": "weather",
+      "filter": "only",
+      "filterValue": "get_weather,get_forecast"
+    },
+    {
+      "name": "database",
+      "filter": "withoutTags",
+      "filterValue": "destructive"
+    }
+  ]
+}
+```
+
+### Template Usage in Different Contexts
+
+**1. Entry Files** - Use templates in the main schema:
+
+```json
+{
+  "libraryDir": "{{env.MCI_LIB|'./mci'}}",
+  "directoryAllowList": [
+    "{{env.DATA_DIR|'./data'}}",
+    "{{env.CONFIG_DIR|'./config'}}"
+  ]
+}
+```
+
+**2. Toolset Files** - Cannot use `libraryDir` or top-level config, but can use templates in tool definitions:
+
+```json
+{
+  "schemaVersion": "1.0",
+  "tools": [
+    {
+      "name": "process_data",
+      "execution": {
+        "type": "file",
+        "path": "{{env.TEMPLATE_PATH|'./templates'}}/report.txt"
+      }
+    }
+  ]
+}
+```
+
+**3. MCP Servers** - Use templates for credentials and paths:
+
+```json
+{
+  "mcp_servers": {
+    "api_service": {
+      "type": "http",
+      "url": "{{env.MCP_URL|'http://localhost:8000/mcp}}'",
+      "headers": {
+        "Authorization": "Bearer {{env.MCP_TOKEN}}"
+      }
+    }
+  }
+}
+```
+
+## Best Practices
+
+### 1. Use Descriptive Entry File Names
+
+```
+✓ Good:
+  - api-tools.mci.json
+  - dev-environment.mci.json
+  - production-monitoring.mci.json
+
+✗ Avoid:
+  - tools.json
+  - config.json
+  - my-stuff.json
+```
+
+### 2. Organize Toolsets by Domain
+
+```
+mci/
+├── apis/
+│   ├── github.mci.json
+│   ├── weather.mci.json
+│   └── slack.mci.json
+├── databases/
+│   ├── postgres.mci.json
+│   └── redis.mci.json
+└── utilities/
+    ├── logging.mci.json
+    └── monitoring.mci.json
+```
+
+### 3. Use Environment Variables for Secrets
+
+```json
+{
+  "tools": [
+    {
+      "execution": {
+        "type": "http",
+        "auth": {
+          "type": "apiKey",
+          "value": "{{env.API_KEY}}" // ✓ Good
+          // "value": "sk-1234567890"  // ✗ Never hardcode secrets
+        }
+      }
+    }
+  ]
+}
+```
+
+### 4. Provide Sensible Defaults
+
+```json
+{
+  "execution": {
+    "type": "cli",
+    "command": "{{env.PYTHON_BIN|'python3'}}", // ✓ Default to python3
+    "timeout_ms": "{{env.TIMEOUT|'30000'}}" // ✓ Default timeout
+  }
+}
+```
+
+### 5. Document Your Entry Files
+
+```json
+{
+  "schemaVersion": "1.0",
+  "metadata": {
+    "name": "Production API Tools",
+    "description": "Tools for production API operations. Requires API_KEY and DB_URL env vars.",
+    "version": "2.1.0",
+    "authors": ["Platform Team"]
+  }
+}
+```
+
+## Summary
+
+- **Entry Files**: Main schema files in your project root that define tool collections
+- **Multiple Entry Files**: Use as many as needed for different environments or purposes
+- **Toolsets Directory**: Default is `./mci`, customizable via `libraryDir`
+- **MCP Cache**: Auto-generated in `./mci/mcp/` when MCP servers are registered
+- **Templating**: Use `{{env.VAR}}` for environment variables, `{{env.VAR|default}}` for defaults
+- **Organization**: Group toolsets by domain, use descriptive names, and document your schemas

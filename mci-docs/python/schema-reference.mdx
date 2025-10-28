@@ -1,0 +1,1429 @@
+---
+title: "MCI Schema Reference"
+description: "This document provides a complete reference for the Model Context Interface (MCI) JSON schema v1. It describes all fields, types, execution configurations, authentication options, and templating syntax supported by the MCI Python adapter"
+---
+
+## Overview
+
+MCI (Model Context Interface) uses a schema to define tools that AI agents can execute. The schema can be written in either **JSON** or **YAML** format - both are fully supported and produce identical results.
+
+Each tool specifies:
+
+- What it does (metadata and description)
+- What inputs it accepts (JSON Schema)
+- How to execute it (execution configuration)
+
+The schema is designed to be platform-agnostic, secure (secrets via environment variables), and supports multiple execution types.
+
+**Schema Version**: `1.0`
+
+**Supported File Formats**:
+
+- JSON (`.json`)
+- YAML (`.yaml`, `.yml`)
+
+---
+
+## Top-Level Schema Structure
+
+The root MCI context file has these main fields:
+
+| Field                | Type    | Required     | Description                                                         |
+| -------------------- | ------- | ------------ | ------------------------------------------------------------------- |
+| `schemaVersion`      | string  | **Required** | MCI schema version (e.g., `"1.0"`)                                  |
+| `metadata`           | object  | Optional     | Descriptive metadata about the tool collection                      |
+| `tools`              | array   | Optional\*   | Array of tool definitions                                           |
+| `toolsets`           | array   | Optional\*   | Array of toolset references to load from library                    |
+| `mcp_servers`        | object  | Optional     | MCP servers to register and cache (see [MCP Servers](#mcp-servers)) |
+| `libraryDir`         | string  | Optional     | Directory to find toolset files (default: `"./mci"`)                |
+| `enableAnyPaths`     | boolean | Optional     | Allow any file path (default: `false`)                              |
+| `directoryAllowList` | array   | Optional     | Additional allowed directories (default: `[]`)                      |
+
+**Note:** Either `tools`, `toolsets`, or `mcp_servers` (or any combination) must be provided.
+
+### Toolsets
+
+**`toolsets`** (array, optional)
+
+- Array of toolset definitions that reference tool collections in the library directory
+- Each toolset can optionally apply schema-level filtering to control which tools are loaded
+- Allows organizing tools into reusable, modular collections
+
+**`libraryDir`** (string, default: `"./mci"`)
+
+- Directory path where toolset files are located, relative to the main schema file
+- Can be customized to use a different directory structure
+
+#### Toolset Object
+
+Each toolset object supports these fields:
+
+| Field         | Type   | Required     | Description                                                     |
+| ------------- | ------ | ------------ | --------------------------------------------------------------- |
+| `name`        | string | **Required** | Name of toolset file/directory in `libraryDir`                  |
+| `filter`      | string | Optional     | Filter type: `"only"`, `"except"`, `"tags"`, or `"withoutTags"` |
+| `filterValue` | string | Required\*   | Comma-separated list of tool names or tags                      |
+
+**\* Required when `filter` is specified**
+
+**Toolset Name Resolution**:
+
+- First checks for a directory: `{libraryDir}/{name}/`
+  - If found, loads all `.mci.json` files in the directory
+- Then checks for direct file: `{libraryDir}/{name}`
+- Then checks with extension: `{libraryDir}/{name}.mci.json`
+- Also supports `.mci.yaml` and `.mci.yml` extensions
+
+**Schema-Level Filters**:
+
+- `only`: Include only tools with specified names
+- `except`: Exclude tools with specified names
+- `tags`: Include only tools with at least one matching tag
+- `withoutTags`: Exclude tools with any matching tag
+
+### Security Fields
+
+**`enableAnyPaths`** (boolean, default: `false`)
+
+- When `true`, disables all path validation for file and CLI execution
+- When `false` (default), restricts access to schema directory and allowed directories
+- Can be overridden per-tool
+- **Use with caution** - enables access to any file on the system
+
+**`directoryAllowList`** (array of strings, default: `[]`)
+
+- List of additional directories to allow for file/CLI access
+- Can be absolute paths (e.g., `/home/user/data`) or relative to schema directory (e.g., `./configs`)
+- Schema directory is always allowed by default
+- Can be overridden per-tool
+
+### MCP Servers
+
+The `mcp_servers` field enables integration with Model Context Protocol servers.
+**`mcp_servers`** (object, optional)
+
+- Object mapping server names to MCP server configurations
+- Allows integration with Model Context Protocol (MCP) servers
+- Tools from MCP servers are automatically cached in `{libraryDir}/mcp/` directory
+- Each server configuration can include filtering and expiration settings
+- Supports both STDIO (local command-based) and HTTP (web-based) servers
+
+#### MCP Server Configuration
+
+Each server in the `mcp_servers` object has a unique name as the key and a configuration object with these fields:
+
+**STDIO Configuration:**
+
+| Field     | Type             | Required | Default | Description                                  |
+| --------- | ---------------- | -------- | ------- | -------------------------------------------- |
+| `command` | string           | Yes      | -       | Command to execute (e.g., `"npx"`, `"uvx"`)  |
+| `args`    | array of strings | No       | `[]`    | Arguments to pass to the command             |
+| `env`     | object           | No       | `{}`    | Environment variables for the server process |
+| `config`  | object           | No       | -       | Optional caching and filtering configuration |
+
+**HTTP Configuration:**
+
+| Field     | Type   | Required | Default | Description                                  |
+| --------- | ------ | -------- | ------- | -------------------------------------------- |
+| `type`    | string | Yes      | -       | Must be `"http"`                             |
+| `url`     | string | Yes      | -       | Server URL endpoint                          |
+| `headers` | object | No       | `{}`    | HTTP headers (e.g., for authentication)      |
+| `config`  | object | No       | -       | Optional caching and filtering configuration |
+
+**Config Object Fields:**
+
+| Field         | Type    | Required | Default | Description                                                     |
+| ------------- | ------- | -------- | ------- | --------------------------------------------------------------- |
+| `expDays`     | integer | No       | `30`    | Number of days until cached toolset expires                     |
+| `filter`      | string  | No       | -       | Filter type: `"only"`, `"except"`, `"tags"`, `"withoutTags"`    |
+| `filterValue` | string  | No       | -       | Comma-separated list of tool names or tags (required if filter) |
+
+#### MCP Server Examples
+
+**STDIO Server with Filtering:**
+
+```json
+{
+  "mcp_servers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/workspace"],
+      "env": {
+        "DEBUG": "1"
+      },
+      "config": {
+        "expDays": 7,
+        "filter": "except",
+        "filterValue": "delete_file,format_disk"
+      }
+    }
+  }
+}
+```
+
+**HTTP Server with Authentication:**
+
+```json
+{
+  "mcp_servers": {
+    "api_server": {
+      "type": "http",
+      "url": "https://api.example.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer {{env.API_TOKEN}}"
+      },
+      "config": {
+        "expDays": 30
+      }
+    }
+  }
+}
+```
+
+**Multiple MCP Servers:**
+
+```json
+{
+  "mcp_servers": {
+    "memory": {
+      "command": "uvx",
+      "args": ["mcp-server-memory"]
+    },
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer {{env.GITHUB_MCP_PAT}}"
+      },
+      "config": {
+        "expDays": 14,
+        "filter": "tags",
+        "filterValue": "read,search"
+      }
+    }
+  }
+}
+```
+
+**How MCP Servers Work:**
+
+1. **First Load**: When the schema is loaded, MCI connects to each MCP server and fetches all available tools
+2. **Caching**: Tools are saved as standard MCI toolset files in `{libraryDir}/mcp/{serverName}.mci.json`
+3. **Subsequent Loads**: Cached toolsets are used instead of connecting to the server (much faster)
+4. **Expiration**: When cache expires (based on `expDays`), tools are re-fetched from the server
+5. **Filtering**: Optional filters are applied when tools are registered
+6. **Templating**: Server configurations support `{{env.VAR}}` templating for credentials
+
+### Example (JSON)
+
+```json
+{
+  "schemaVersion": "1.0",
+  "metadata": {
+    "name": "My API Tools",
+    "description": "Tools for interacting with my API",
+    "version": "1.0.0",
+    "license": "MIT",
+    "authors": ["John Doe"]
+  },
+  "enableAnyPaths": false,
+  "directoryAllowList": ["/home/user/data", "./configs"],
+  "tools": []
+}
+```
+
+### Example with Toolsets (JSON)
+
+```json
+{
+  "schemaVersion": "1.0",
+  "metadata": {
+    "name": "My Application",
+    "description": "Main application with multiple tool libraries"
+  },
+  "libraryDir": "./mci",
+  "tools": [
+    {
+      "name": "main_tool",
+      "description": "Main application tool",
+      "execution": {
+        "type": "text",
+        "text": "Main tool output"
+      }
+    }
+  ],
+  "toolsets": [
+    {
+      "name": "weather",
+      "filter": "only",
+      "filterValue": "get_weather, get_forecast"
+    },
+    {
+      "name": "database",
+      "filter": "withoutTags",
+      "filterValue": "destructive"
+    },
+    {
+      "name": "github"
+    }
+  ]
+}
+```
+
+### Example (YAML)
+
+```yaml
+schemaVersion: "1.0"
+metadata:
+  name: My API Tools
+  description: Tools for interacting with my API
+  version: 1.0.0
+  license: MIT
+  authors:
+    - John Doe
+enableAnyPaths: false
+directoryAllowList:
+  - /home/user/data
+  - ./configs
+tools: []
+```
+
+---
+
+## Toolset Schema Files
+
+Toolset files are MCI schema files stored in the library directory (default: `./mci`). They provide a way to organize and reuse tool collections across different main schemas.
+
+### Toolset File Structure
+
+Toolset files have a simplified structure compared to main schemas:
+
+| Field           | Type   | Required     | Description                                 |
+| --------------- | ------ | ------------ | ------------------------------------------- |
+| `schemaVersion` | string | **Required** | MCI schema version (must match main schema) |
+| `metadata`      | object | Optional     | Descriptive metadata about the toolset      |
+| `tools`         | array  | **Required** | Array of tool definitions                   |
+
+**Important Differences from Main Schema**:
+
+- `tools` field is **required** in toolset files (optional in main schema)
+- Cannot contain `toolsets`, `libraryDir`, `enableAnyPaths`, or `directoryAllowList` fields
+- These are purely tool definition files, not configuration files
+
+### Example Toolset File (JSON)
+
+**File**: `./mci/weather.mci.json`
+
+```json
+{
+  "schemaVersion": "1.0",
+  "metadata": {
+    "name": "Weather Toolset",
+    "description": "Tools for weather information",
+    "version": "1.0.0"
+  },
+  "tools": [
+    {
+      "name": "get_weather",
+      "description": "Get current weather",
+      "tags": ["weather", "read"],
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "string",
+            "description": "City name or location"
+          }
+        },
+        "required": ["location"]
+      },
+      "execution": {
+        "type": "http",
+        "method": "GET",
+        "url": "https://api.weather.com/current",
+        "params": {
+          "location": "{{props.location}}"
+        }
+      }
+    },
+    {
+      "name": "get_forecast",
+      "description": "Get weather forecast",
+      "tags": ["weather", "read"],
+      "execution": {
+        "type": "http",
+        "method": "GET",
+        "url": "https://api.weather.com/forecast",
+        "params": {
+          "location": "{{props.location}}",
+          "days": "{{props.days}}"
+        }
+      }
+    }
+  ]
+}
+```
+
+### Toolset Directory Structure
+
+You can organize related toolsets in subdirectories:
+
+```
+project/
+├── main.mci.json          # Main schema
+└── mci/                   # Library directory
+    ├── weather.mci.json   # Single-file toolset
+    ├── database.mci.json  # Single-file toolset
+    └── github/            # Directory-based toolset
+        ├── prs.mci.json   # GitHub PR tools
+        └── issues.mci.json # GitHub issue tools
+```
+
+When referencing a directory-based toolset:
+
+```json
+{
+  "toolsets": [
+    { "name": "github" } // Loads all .mci.json files in mci/github/
+  ]
+}
+```
+
+**Important notes for directory-based toolsets:**
+
+- Only tools are merged from toolset files; metadata is not merged
+- All files in a directory must use the same schema version
+- Schema version mismatch will raise an error to ensure compatibility
+
+**Metadata in toolset files:**
+
+- Metadata in toolset files is for demonstration and documentation purposes only
+- It helps credit toolset authors and provides human-friendly descriptions
+- Metadata is never merged into the main schema from toolset files
+  }
+
+````
+
+---
+
+## Metadata
+
+Optional metadata about the tool collection.
+
+| Field         | Type   | Required | Description                                        |
+| ------------- | ------ | -------- | -------------------------------------------------- |
+| `name`        | string | Optional | Name of the tool collection                        |
+| `description` | string | Optional | Description of the tool collection                 |
+| `version`     | string | Optional | Version of the tool collection (e.g., SemVer)      |
+| `license`     | string | Optional | License identifier (e.g., `"MIT"`, `"Apache-2.0"`) |
+| `authors`     | array  | Optional | Array of author names                              |
+
+### Example (JSON)
+
+```json
+{
+  "name": "Weather API Tools",
+  "description": "Tools for fetching weather information",
+  "version": "1.2.0",
+  "license": "MIT",
+  "authors": ["Weather Team", "API Team"]
+}
+````
+
+### Example (YAML)
+
+```yaml
+name: Weather API Tools
+description: Tools for fetching weather information
+version: 1.2.0
+license: MIT
+authors:
+  - Weather Team
+  - API Team
+```
+
+---
+
+## Tool Definition
+
+Each tool in the `tools` array represents a single executable operation.
+
+| Field                | Type    | Required     | Description                                                       |
+| -------------------- | ------- | ------------ | ----------------------------------------------------------------- |
+| `name`               | string  | **Required** | Unique identifier for the tool                                    |
+| `disabled`           | boolean | Optional     | If true, the tool is ignored (default: `false`)                   |
+| `annotations`        | object  | Optional     | Metadata and behavioral hints (see [Annotations](#annotations))   |
+| `description`        | string  | Optional     | Description of what the tool does                                 |
+| `inputSchema`        | object  | Optional     | JSON Schema describing expected inputs                            |
+| `execution`          | object  | **Required** | Execution configuration (see [Execution Types](#execution-types)) |
+| `enableAnyPaths`     | boolean | Optional     | Override schema-level path restriction (default: `false`)         |
+| `directoryAllowList` | array   | Optional     | Override schema-level allowed directories (default: `[]`)         |
+| `tags`               | array   | Optional     | Array of string tags for filtering (default: `[]`)                |
+
+### Tags
+
+**`tags`** (array of strings, default: `[]`)
+
+- List of tags for categorizing and filtering tools
+- Tags are case-sensitive and matched exactly as provided
+- Used with `tags()` and `withoutTags()` filter methods in MCIClient and ToolManager
+- Tools can have zero or more tags
+- Common tag examples: `"api"`, `"database"`, `"internal"`, `"external"`, `"deprecated"`
+
+### Disabled Tools
+
+**`disabled`** (boolean, default: `false`)
+
+- When `true`, the tool is excluded from all listing, filtering, and lookup operations
+- Disabled tools cannot be executed and behave as if they do not exist
+- Useful for temporarily deactivating tools without removing them from the schema
+
+### Annotations
+
+The `annotations` object provides optional metadata and behavioral hints about the tool. All fields are optional.
+
+| Field             | Type    | Description                                                      |
+| ----------------- | ------- | ---------------------------------------------------------------- |
+| `title`           | string  | Human-readable title for the tool                                |
+| `readOnlyHint`    | boolean | If true, the tool does not modify its environment                |
+| `destructiveHint` | boolean | If true, the tool may perform destructive updates                |
+| `idempotentHint`  | boolean | If true, repeated calls with same args have no additional effect |
+| `openWorldHint`   | boolean | If true, the tool interacts with external entities               |
+
+**Note:** These hints are advisory and do not enforce any behavior. They help AI agents understand the tool's characteristics for better decision-making.
+
+### Security Fields (Per-Tool)
+
+**`enableAnyPaths`** (boolean, default: `false`)
+
+- Overrides schema-level setting for this specific tool
+- When `true`, disables path validation for this tool
+- Takes precedence over schema-level `enableAnyPaths`
+
+**`directoryAllowList`** (array of strings, default: `[]`)
+
+- Overrides schema-level setting for this specific tool
+- List of additional directories allowed for this tool only
+- Takes precedence over schema-level `directoryAllowList`
+- Can be absolute or relative paths
+
+### Example (JSON)
+
+```json
+{
+  "name": "get_weather",
+  "annotations": {
+    "title": "Get Weather Information",
+    "readOnlyHint": true,
+    "openWorldHint": true
+  },
+  "description": "Fetch current weather for a location",
+  "tags": ["api", "external", "weather"],
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "location": {
+        "type": "string",
+        "description": "City name or zip code"
+      },
+      "units": {
+        "type": "string",
+        "enum": ["metric", "imperial"],
+        "default": "metric"
+      }
+    },
+    "required": ["location"]
+  },
+  "execution": {
+    "type": "http",
+    "method": "GET",
+    "url": "https://api.weather.com/v1/current",
+    "params": {
+      "location": "{{props.location}}",
+      "units": "{{props.units}}"
+    }
+  }
+}
+```
+
+### Example with Disabled Tool (JSON)
+
+```json
+{
+  "name": "legacy_api",
+  "disabled": true,
+  "annotations": {
+    "title": "Legacy API Tool (Deprecated)"
+  },
+  "description": "This tool is disabled and will not be available",
+  "execution": {
+    "type": "http",
+    "url": "https://api.example.com/legacy"
+  }
+}
+```
+
+### Example with Security Overrides (JSON)
+
+```json
+{
+  "name": "read_system_file",
+  "description": "Read a file with unrestricted access",
+  "enableAnyPaths": true,
+  "execution": {
+    "type": "file",
+    "path": "{{props.file_path}}"
+  }
+}
+```
+
+### Example with Directory Allow List (YAML)
+
+```yaml
+name: read_config
+description: Read configuration from allowed directories
+annotations:
+  title: Read Config
+  readOnlyHint: true
+directoryAllowList:
+  - /etc/myapp
+  - ./configs
+execution:
+  type: file
+  path: "{{props.config_path}}"
+```
+
+### Example with All Annotation Hints (YAML)
+
+```yaml
+name: delete_resource
+annotations:
+  title: Delete Resource
+  readOnlyHint: false
+  destructiveHint: true
+  idempotentHint: false
+  openWorldHint: true
+description: Delete a resource from the remote server
+execution:
+  type: http
+  method: DELETE
+  url: "https://api.example.com/resources/{{props.id}}"
+```
+
+---
+
+## Execution Types
+
+MCI supports four execution types: `http`, `cli`, `file`, and `text`. The `type` field in the `execution` object determines which executor is used.
+
+### HTTP Execution
+
+Execute HTTP requests to external APIs.
+
+**Type**: `"http"`
+
+#### Fields
+
+| Field        | Type    | Required     | Default | Description                                                             |
+| ------------ | ------- | ------------ | ------- | ----------------------------------------------------------------------- |
+| `type`       | string  | **Required** | -       | Must be `"http"`                                                        |
+| `method`     | string  | Optional     | `"GET"` | HTTP method: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, `OPTIONS` |
+| `url`        | string  | **Required** | -       | Target URL (supports templating)                                        |
+| `headers`    | object  | Optional     | -       | HTTP headers as key-value pairs (supports templating)                   |
+| `auth`       | object  | Optional     | -       | Authentication configuration (see [Authentication](#authentication))    |
+| `params`     | object  | Optional     | -       | Query parameters as key-value pairs (supports templating)               |
+| `body`       | object  | Optional     | -       | Request body configuration                                              |
+| `timeout_ms` | integer | Optional     | `30000` | Request timeout in milliseconds (must be ≥ 0)                           |
+| `retries`    | object  | Optional     | -       | Retry configuration                                                     |
+
+#### Body Configuration
+
+The `body` field defines the request body:
+
+| Field     | Type          | Required     | Description                                         |
+| --------- | ------------- | ------------ | --------------------------------------------------- |
+| `type`    | string        | **Required** | Body type: `"json"`, `"form"`, or `"raw"`           |
+| `content` | object/string | **Required** | Body content (object for json/form, string for raw) |
+
+#### Retry Configuration
+
+The `retries` field configures retry behavior:
+
+| Field        | Type    | Required | Default | Description                                 |
+| ------------ | ------- | -------- | ------- | ------------------------------------------- |
+| `attempts`   | integer | Optional | `1`     | Number of retry attempts (must be ≥ 1)      |
+| `backoff_ms` | integer | Optional | `500`   | Backoff delay in milliseconds (must be ≥ 0) |
+
+#### Examples
+
+**GET Request with Query Parameters**
+
+```json
+{
+  "type": "http",
+  "method": "GET",
+  "url": "https://api.example.com/weather",
+  "params": {
+    "location": "{{props.location}}",
+    "units": "metric"
+  },
+  "headers": {
+    "Accept": "application/json"
+  },
+  "timeout_ms": 5000
+}
+```
+
+**POST Request with JSON Body**
+
+```json
+{
+  "type": "http",
+  "method": "POST",
+  "url": "https://api.example.com/reports",
+  "headers": {
+    "Content-Type": "application/json",
+    "Accept": "application/json"
+  },
+  "body": {
+    "type": "json",
+    "content": {
+      "title": "{{props.title}}",
+      "content": "{{props.content}}",
+      "timestamp": "{{env.CURRENT_TIMESTAMP}}"
+    }
+  },
+  "timeout_ms": 10000
+}
+```
+
+**POST Request with Form Data**
+
+```json
+{
+  "type": "http",
+  "method": "POST",
+  "url": "https://api.example.com/upload",
+  "body": {
+    "type": "form",
+    "content": {
+      "filename": "{{props.filename}}",
+      "category": "documents"
+    }
+  }
+}
+```
+
+**Request with Retry Logic**
+
+```json
+{
+  "type": "http",
+  "method": "GET",
+  "url": "https://api.example.com/data",
+  "retries": {
+    "attempts": 3,
+    "backoff_ms": 1000
+  }
+}
+```
+
+---
+
+### CLI Execution
+
+Execute command-line tools and scripts.
+
+**Type**: `"cli"`
+
+#### Fields
+
+| Field        | Type    | Required     | Default | Description                                     |
+| ------------ | ------- | ------------ | ------- | ----------------------------------------------- |
+| `type`       | string  | **Required** | -       | Must be `"cli"`                                 |
+| `command`    | string  | **Required** | -       | Command to execute                              |
+| `args`       | array   | Optional     | -       | Fixed positional arguments                      |
+| `flags`      | object  | Optional     | -       | Dynamic flags mapped from properties            |
+| `cwd`        | string  | Optional     | -       | Working directory (supports templating)         |
+| `timeout_ms` | integer | Optional     | `30000` | Execution timeout in milliseconds (must be ≥ 0) |
+
+#### Flag Configuration
+
+Each flag in the `flags` object has:
+
+| Field  | Type   | Required     | Description                                 |
+| ------ | ------ | ------------ | ------------------------------------------- |
+| `from` | string | **Required** | Property path (e.g., `"props.ignore_case"`) |
+| `type` | string | **Required** | Flag type: `"boolean"` or `"value"`         |
+
+- **`boolean`**: Flag is included only if the property is truthy (e.g., `-i`)
+- **`value`**: Flag is included with the property value (e.g., `--file=myfile.txt`)
+
+#### Examples
+
+**Basic CLI Command**
+
+```json
+{
+  "type": "cli",
+  "command": "grep",
+  "args": ["-r", "-n"],
+  "flags": {
+    "-i": {
+      "from": "props.ignore_case",
+      "type": "boolean"
+    }
+  },
+  "cwd": "{{props.directory}}",
+  "timeout_ms": 8000
+}
+```
+
+**CLI with Value Flags**
+
+```json
+{
+  "type": "cli",
+  "command": "convert",
+  "args": ["input.png"],
+  "flags": {
+    "--resize": {
+      "from": "props.size",
+      "type": "value"
+    },
+    "--quality": {
+      "from": "props.quality",
+      "type": "value"
+    }
+  },
+  "cwd": "/tmp"
+}
+```
+
+---
+
+### File Execution
+
+Read and parse file contents with optional templating.
+
+**Type**: `"file"`
+
+#### Fields
+
+| Field              | Type    | Required     | Default | Description                                  |
+| ------------------ | ------- | ------------ | ------- | -------------------------------------------- |
+| `type`             | string  | **Required** | -       | Must be `"file"`                             |
+| `path`             | string  | **Required** | -       | File path (supports templating)              |
+| `enableTemplating` | boolean | Optional     | `true`  | Whether to process templates in file content |
+
+When `enableTemplating` is `true`, the file contents are processed with the full templating engine (basic placeholders, loops, and conditionals).
+
+#### Examples
+
+**Load Template File**
+
+```json
+{
+  "type": "file",
+  "path": "./templates/report-{{props.report_id}}.txt",
+  "enableTemplating": true
+}
+```
+
+**Load Raw File**
+
+```json
+{
+  "type": "file",
+  "path": "/etc/config/settings.json",
+  "enableTemplating": false
+}
+```
+
+---
+
+### Text Execution
+
+Return templated text directly.
+
+**Type**: `"text"`
+
+#### Fields
+
+| Field  | Type   | Required     | Description                         |
+| ------ | ------ | ------------ | ----------------------------------- |
+| `type` | string | **Required** | Must be `"text"`                    |
+| `text` | string | **Required** | Text template (supports templating) |
+
+The text is processed with the full templating engine (basic placeholders, loops, and conditionals).
+
+#### Examples
+
+**Simple Message**
+
+```json
+{
+  "type": "text",
+  "text": "Hello {{props.username}}! This message was generated on {{env.CURRENT_DATE}}."
+}
+```
+
+**Report with Conditionals**
+
+```json
+{
+  "type": "text",
+  "text": "Report for {{props.username}}\n@if(props.premium)Premium features enabled@else Standard features available @endif"
+}
+```
+
+---
+
+## Authentication
+
+HTTP execution supports four authentication types: API Key, Bearer Token, Basic Auth, and OAuth2.
+
+### API Key Authentication
+
+Pass an API key in headers or query parameters.
+
+**Type**: `"apiKey"`
+
+#### Fields
+
+| Field   | Type   | Required     | Description                                                      |
+| ------- | ------ | ------------ | ---------------------------------------------------------------- |
+| `type`  | string | **Required** | Must be `"apiKey"`                                               |
+| `in`    | string | **Required** | Where to send the key: `"header"` or `"query"`                   |
+| `name`  | string | **Required** | Header/query parameter name                                      |
+| `value` | string | **Required** | API key value (supports templating, typically `{{env.API_KEY}}`) |
+
+#### Examples
+
+**API Key in Header**
+
+```json
+{
+  "type": "http",
+  "method": "GET",
+  "url": "https://api.example.com/data",
+  "auth": {
+    "type": "apiKey",
+    "in": "header",
+    "name": "X-API-Key",
+    "value": "{{env.API_KEY}}"
+  }
+}
+```
+
+**API Key in Query Parameter**
+
+```json
+{
+  "type": "http",
+  "method": "GET",
+  "url": "https://api.example.com/data",
+  "auth": {
+    "type": "apiKey",
+    "in": "query",
+    "name": "api_key",
+    "value": "{{env.API_KEY}}"
+  }
+}
+```
+
+---
+
+### Bearer Token Authentication
+
+Pass a bearer token in the `Authorization` header.
+
+**Type**: `"bearer"`
+
+#### Fields
+
+| Field   | Type   | Required     | Description                                                          |
+| ------- | ------ | ------------ | -------------------------------------------------------------------- |
+| `type`  | string | **Required** | Must be `"bearer"`                                                   |
+| `token` | string | **Required** | Bearer token (supports templating, typically `{{env.BEARER_TOKEN}}`) |
+
+#### Example
+
+```json
+{
+  "type": "http",
+  "method": "POST",
+  "url": "https://api.example.com/reports",
+  "auth": {
+    "type": "bearer",
+    "token": "{{env.BEARER_TOKEN}}"
+  },
+  "body": {
+    "type": "json",
+    "content": {
+      "title": "{{props.title}}"
+    }
+  }
+}
+```
+
+---
+
+### Basic Authentication
+
+Use HTTP Basic Authentication with username and password.
+
+**Type**: `"basic"`
+
+#### Fields
+
+| Field      | Type   | Required     | Description                                                  |
+| ---------- | ------ | ------------ | ------------------------------------------------------------ |
+| `type`     | string | **Required** | Must be `"basic"`                                            |
+| `username` | string | **Required** | Username (supports templating, typically `{{env.USERNAME}}`) |
+| `password` | string | **Required** | Password (supports templating, typically `{{env.PASSWORD}}`) |
+
+#### Example
+
+```json
+{
+  "type": "http",
+  "method": "GET",
+  "url": "https://api.example.com/private-data",
+  "auth": {
+    "type": "basic",
+    "username": "{{env.USERNAME}}",
+    "password": "{{env.PASSWORD}}"
+  }
+}
+```
+
+---
+
+### OAuth2 Authentication
+
+Authenticate using OAuth2 client credentials flow.
+
+**Type**: `"oauth2"`
+
+#### Fields
+
+| Field          | Type   | Required     | Description                                    |
+| -------------- | ------ | ------------ | ---------------------------------------------- |
+| `type`         | string | **Required** | Must be `"oauth2"`                             |
+| `flow`         | string | **Required** | OAuth2 flow type (e.g., `"clientCredentials"`) |
+| `tokenUrl`     | string | **Required** | Token endpoint URL                             |
+| `clientId`     | string | **Required** | OAuth2 client ID (supports templating)         |
+| `clientSecret` | string | **Required** | OAuth2 client secret (supports templating)     |
+| `scopes`       | array  | Optional     | Array of scope strings                         |
+
+#### Example
+
+```json
+{
+  "type": "http",
+  "method": "GET",
+  "url": "https://api.example.com/weather",
+  "auth": {
+    "type": "oauth2",
+    "flow": "clientCredentials",
+    "tokenUrl": "https://auth.example.com/token",
+    "clientId": "{{env.CLIENT_ID}}",
+    "clientSecret": "{{env.CLIENT_SECRET}}",
+    "scopes": ["read:weather", "read:forecast"]
+  }
+}
+```
+
+---
+
+## Templating Syntax
+
+The MCI templating engine supports placeholder substitution, loops, and conditional blocks. Templating is available in:
+
+- Execution configurations (URLs, headers, params, body, etc.)
+- File contents (when `enableTemplating: true`)
+- Text execution
+
+### Context Structure
+
+The templating engine has access to three contexts:
+
+- **`props`**: Properties passed to `execute()` method
+- **`env`**: Environment variables passed to the adapter
+- **`input`**: Alias for `props` (for backward compatibility)
+
+### Basic Placeholders
+
+Replace placeholders with values from the context.
+
+**Syntax**: `{{path.to.value}}`
+
+#### Examples
+
+```
+{{props.location}}
+{{env.API_KEY}}
+{{input.username}}
+{{props.user.name}}
+{{env.DATABASE_URL}}
+```
+
+**In JSON**:
+
+```json
+{
+  "url": "https://api.example.com/users/{{props.user_id}}",
+  "headers": {
+    "Authorization": "Bearer {{env.ACCESS_TOKEN}}",
+    "X-Request-ID": "{{props.request_id}}"
+  }
+}
+```
+
+---
+
+### For Loops
+
+Iterate a fixed number of times using a range.
+
+**Syntax**: `@for(variable in range(start, end))...@endfor`
+
+- `variable`: Loop variable name
+- `start`: Starting value (inclusive)
+- `end`: Ending value (exclusive)
+
+#### Example
+
+**Template**:
+
+```
+@for(i in range(0, 3))
+Item {{i}}
+@endfor
+```
+
+**Output**:
+
+```
+Item 0
+Item 1
+Item 2
+```
+
+---
+
+### Foreach Loops
+
+Iterate over arrays or objects from the context.
+
+**Syntax**: `@foreach(variable in path.to.collection)...@endforeach`
+
+- `variable`: Loop variable name
+- `path.to.collection`: Path to an array or object in the context
+
+#### Array Example
+
+**Context**:
+
+```json
+{
+  "props": {
+    "items": ["Apple", "Banana", "Cherry"]
+  }
+}
+```
+
+**Template**:
+
+```
+@foreach(item in props.items)
+- {{item}}
+@endforeach
+```
+
+**Output**:
+
+```
+- Apple
+- Banana
+- Cherry
+```
+
+#### Object Example
+
+**Context**:
+
+```json
+{
+  "props": {
+    "users": [
+      { "name": "Alice", "age": 30 },
+      { "name": "Bob", "age": 25 }
+    ]
+  }
+}
+```
+
+**Template**:
+
+```
+@foreach(user in props.users)
+Name: {{user.name}}, Age: {{user.age}}
+@endforeach
+```
+
+**Output**:
+
+```
+Name: Alice, Age: 30
+Name: Bob, Age: 25
+```
+
+---
+
+### Conditional Blocks
+
+Execute code conditionally based on values in the context.
+
+**Syntax**:
+
+```
+@if(condition)
+...
+@elseif(condition)
+...
+@else
+...
+@endif
+```
+
+#### Supported Conditions
+
+- **Truthy check**: `@if(path.to.value)`
+- **Equality**: `@if(path.to.value == "expected")`
+- **Inequality**: `@if(path.to.value != "unexpected")`
+- **Greater than**: `@if(path.to.value > 10)`
+- **Less than**: `@if(path.to.value < 100)`
+
+#### Examples
+
+**Simple Conditional**:
+
+```
+@if(props.premium)
+You have premium access!
+@else
+Upgrade to premium for more features.
+@endif
+```
+
+**Multiple Conditions**:
+
+```
+@if(props.status == "active")
+Status: Active
+@elseif(props.status == "pending")
+Status: Pending approval
+@else
+Status: Inactive
+@endif
+```
+
+**Numeric Comparison**:
+
+```
+@if(props.age > 18)
+Adult content available
+@else
+Restricted content
+@endif
+```
+
+---
+
+## Execution Result Format
+
+All tool executions return a consistent result format.
+
+| Field      | Type    | Description                                               |
+| ---------- | ------- | --------------------------------------------------------- |
+| `isError`  | boolean | Whether an error occurred during execution                |
+| `content`  | any     | Result content (if successful)                            |
+| `error`    | string  | Error message (if `isError: true`)                        |
+| `metadata` | object  | Optional metadata (e.g., HTTP status code, CLI exit code) |
+
+### Metadata Fields by Execution Type
+
+Different execution types include specific metadata:
+
+**HTTP Execution Metadata:**
+
+- `status_code` (integer): HTTP status code
+- `response_time_ms` (integer): Response time in milliseconds
+
+**CLI Execution Metadata:**
+
+- `exit_code` (integer): Command exit code (0 for success, non-zero for failure)
+- `stdout_bytes` (integer): Size of stdout in bytes
+- `stderr_bytes` (integer): Size of stderr in bytes
+- `stderr` (string): Standard error output (if any)
+- `stdout` (string): Standard output (only included in error results)
+
+### Successful Result
+
+```json
+{
+  "isError": false,
+  "content": [
+    {
+      "type": "text",
+      "text": "Current weather in New York:\nTemperature: 72°F\nConditions: Partly cloudy"
+    }
+  ],
+  "metadata": {
+    "status_code": 200,
+    "response_time_ms": 245
+  }
+}
+```
+
+### CLI Successful Result
+
+```json
+{
+  "isError": false,
+  "content": [
+    {
+      "type": "text",
+      "text": "Hello, World!\n"
+    }
+  ],
+  "metadata": {
+    "exit_code": 0,
+    "stdout_bytes": 14,
+    "stderr_bytes": 0,
+    "stderr": ""
+  }
+}
+```
+
+### Error Result
+
+```json
+{
+  "isError": true,
+  "error": "HTTP request failed: 404 Not Found",
+  "metadata": {
+    "status_code": 404
+  }
+}
+```
+
+### CLI Error Result
+
+```json
+{
+  "isError": true,
+  "error": "Command exited with code 1: permission denied",
+  "metadata": {
+    "exit_code": 1,
+    "stdout_bytes": 0,
+    "stderr_bytes": 18,
+    "stderr": "permission denied",
+    "stdout": ""
+  }
+}
+```
+
+---
+
+## Complete Example
+
+Here's a complete MCI context file demonstrating all features:
+
+```json
+{
+  "schemaVersion": "1.0",
+  "metadata": {
+    "name": "Example API Tools",
+    "description": "Comprehensive example of MCI features",
+    "version": "1.0.0",
+    "license": "MIT",
+    "authors": ["MCI Team"]
+  },
+  "tools": [
+    {
+      "name": "get_weather",
+      "title": "Get Weather",
+      "description": "Fetch weather with API key auth",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "location": { "type": "string" }
+        },
+        "required": ["location"]
+      },
+      "execution": {
+        "type": "http",
+        "method": "GET",
+        "url": "https://api.weather.com/v1/current",
+        "auth": {
+          "type": "apiKey",
+          "in": "header",
+          "name": "X-API-Key",
+          "value": "{{env.WEATHER_API_KEY}}"
+        },
+        "params": {
+          "location": "{{props.location}}"
+        }
+      }
+    },
+    {
+      "name": "search_logs",
+      "title": "Search Logs",
+      "description": "Search log files with grep",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "pattern": { "type": "string" },
+          "directory": { "type": "string" }
+        },
+        "required": ["pattern", "directory"]
+      },
+      "execution": {
+        "type": "cli",
+        "command": "grep",
+        "args": ["-r", "{{props.pattern}}"],
+        "cwd": "{{props.directory}}"
+      }
+    },
+    {
+      "name": "load_report",
+      "title": "Load Report",
+      "description": "Load report template",
+      "execution": {
+        "type": "file",
+        "path": "./templates/report.txt",
+        "enableTemplating": true
+      }
+    },
+    {
+      "name": "generate_greeting",
+      "title": "Generate Greeting",
+      "description": "Generate personalized greeting",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" }
+        },
+        "required": ["name"]
+      },
+      "execution": {
+        "type": "text",
+        "text": "Hello {{props.name}}! Welcome to MCI."
+      }
+    }
+  ]
+}
+```

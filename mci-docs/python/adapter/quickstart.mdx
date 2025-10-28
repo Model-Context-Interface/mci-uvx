@@ -1,0 +1,214 @@
+---
+title: "Python Quickstart Guide"
+description: "Get started quickly with the MCI Python adapter for defining and executing tools"
+---
+
+# MCI Python Adapter - Quickstart Guide
+
+Welcome to the MCI Python Adapter! This guide will help you get started quickly with installing, configuring, and using the MCI (Model Context Interface) adapter to define and execute tools in your Python applications.
+
+## Installation
+
+### Prerequisites
+
+- Python 3.11 or higher
+- `uv` package manager (recommended) or `pip`
+
+### Option 1: Using uv (Recommended)
+
+First, install `uv` if you haven't already:
+
+```bash
+# macOS or Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Or using Homebrew on macOS
+brew install uv
+```
+
+Then install the MCI Python adapter:
+
+```bash
+# Install from PyPI
+uv pip install mci-py
+
+# Or install with uv add (if using uv project)
+uv add mci-py
+```
+
+### Option 2: Using pip
+
+```bash
+pip install mci-py
+```
+
+### Verify Installation
+
+```python
+import mcipy
+print("MCI Python Adapter installed successfully!")
+```
+
+## Quick Example
+
+Here's a complete example to get you started in under 5 minutes:
+
+### 1. Create a Tool Schema File
+
+Create a file named `my-tools.mci.json`:
+
+```json
+{
+  "schemaVersion": "1.0",
+  "metadata": {
+    "name": "My First Tools",
+    "description": "A simple collection of tools"
+  },
+  "tools": [
+    {
+      "name": "greet_user",
+      "description": "Generate a personalized greeting",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "The user's name"
+          }
+        },
+        "required": ["username"]
+      },
+      "execution": {
+        "type": "text",
+        "text": "Hello, {{props.username}}! Welcome to MCI."
+      }
+    },
+    {
+      "name": "get_weather",
+      "description": "Fetch weather information",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "string",
+            "description": "City name"
+          }
+        },
+        "required": ["location"]
+      },
+      "execution": {
+        "type": "http",
+        "method": "GET",
+        "url": "https://api.example.com/weather",
+        "params": {
+          "location": "{{props.location}}"
+        }
+      }
+    }
+  ]
+}
+```
+
+### 2. Write Python Code
+
+Create a file named `example.py`:
+
+```python
+from mcipy import MCIClient
+
+# Initialize the client
+client = MCIClient(
+    schema_file_path="my-tools.mci.json",
+    env_vars={
+        "API_KEY": "your-secret-key"
+    }
+)
+
+# List available tools
+print("Available tools:")
+for tool_name in client.list_tools():
+    print(f"  - {tool_name}")
+
+# Execute a tool
+result = client.execute(
+    tool_name="greet_user",
+    properties={"username": "Alice"}
+)
+
+# Check the result
+if result.result.isError:
+    print(f"Error: {result.result.content[0].text}")
+else:
+    print(f"Success: {result.result.content[0].text}")
+```
+
+### 3. Run Your Code
+
+```bash
+python example.py
+```
+
+**Output:**
+
+```
+Available tools:
+  - greet_user
+  - get_weather
+Success: Hello, Alice! Welcome to MCI.
+```
+
+## What's Next?
+
+Now that you've seen the basics, explore these resources to learn more:
+
+- **[Basic Usage Guide](basic_usage.md)** - Detailed usage patterns and examples
+- **[Concepts](concepts/README.md)** - Understand MCI core concepts:
+  - [Structure](concepts/structure.md) - Project structure and organization
+  - [Tools](concepts/tools.md) - Different tool execution types
+  - [Toolsets](concepts/toolsets.md) - Organizing and sharing tools
+  - [MCP Servers](concepts/mcp_servers.md) - Integrating MCP servers
+  - [Templates](concepts/templates.md) - Advanced templating features
+- **[Schema Reference](schema_reference.md)** - Complete schema documentation
+- **[API Reference](api_reference.md)** - Detailed API documentation
+
+## Key Concepts at a Glance
+
+### Execution Types
+
+MCI supports four execution types:
+
+- **Text**: Return templated text directly
+- **File**: Read file contents with template substitution
+- **CLI**: Execute command-line tools
+- **HTTP**: Make HTTP API requests
+
+### Template Placeholders
+
+Use placeholders in your configurations:
+
+- `{{props.fieldName}}` - Access input properties
+- `{{env.VARIABLE_NAME}}` - Access environment variables
+
+### Tool Organization
+
+- **Tools**: Individual actions defined in your schema
+- **Toolsets**: Reusable collections of tools in separate files
+- **MCP Servers**: Integration with external MCP servers
+
+## Common Use Cases
+
+- **API Integration**: Use HTTP execution to integrate REST APIs
+- **DevOps Automation**: Use CLI execution for system tasks
+- **Configuration Management**: Use File execution for config templates
+- **Reporting**: Use Text execution for formatted reports
+- **Data Processing**: Combine multiple execution types
+
+## Getting Help
+
+If you encounter issues or have questions:
+
+- Check the [GitHub Issues](https://github.com/Model-Context-Interface/mci-py/issues)
+- Review the [PRD.md](../PRD.md) for design decisions
+- Examine the [example.py](../example.py) for working code
+
+Happy building with MCI! 🚀

@@ -1,0 +1,384 @@
+---
+title: "MCP Integration"
+description: "Use MCP tools alongside your MCI-defined tools with automatic caching, filtering, and seamless execution"
+---
+
+## Overview
+
+MCP (Model Context Protocol) is a protocol for connecting AI models to external tools and data sources. The MCI-MCP integration allows you to:
+
+- **Register MCP servers** in your MCI schema (both STDIO and HTTP types)
+- **Auto-fetch and cache** MCP toolsets to avoid repeated server connections
+- **Filter MCP tools** using the same filtering system as MCI toolsets
+- **Execute MCP tools** directly from the MCI client
+- **Apply templating** to MCP server configurations (e.g., environment variables)
+
+## Registering MCP Servers
+
+Add the `mcp_servers` field to your MCI schema file to register MCP servers:
+
+### STDIO MCP Server Example
+
+```json
+{
+  "schemaVersion": "1.0",
+  "mcp_servers": {
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/Users/username/Desktop"
+      ],
+      "env": {
+        "MY_API_KEY": "{{env.API_KEY}}",
+        "DEBUG_MODE": "1"
+      },
+      "config": {
+        "expDays": 30,
+        "filter": "only",
+        "filterValue": "read_file,write_file,list_directory"
+      }
+    }
+  }
+}
+```
+
+### HTTP MCP Server Example
+
+```json
+{
+  "schemaVersion": "1.0",
+  "mcp_servers": {
+    "api_server": {
+      "type": "http",
+      "url": "https://api.example.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer {{env.API_TOKEN}}"
+      },
+      "config": {
+        "expDays": 7,
+        "filter": "tags",
+        "filterValue": "read,write"
+      }
+    }
+  }
+}
+```
+
+## MCP Server Configuration
+
+Each MCP server supports an optional `config` object with the following fields:
+
+- **`expDays`** (default: 30): Number of days until the cached MCP toolset expires and needs to be re-fetched
+- **`filter`** (optional): Filter type - one of `"only"`, `"except"`, `"tags"`, or `"withoutTags"`
+- **`filterValue`** (optional): Comma-separated list of tool names or tags to filter (required if `filter` is set)
+
+## How Caching Works
+
+When you load an MCI schema with MCP servers:
+
+1. **First Load**: MCI checks for a cached toolset file in `{libraryDir}/mcp/{serverName}.mci.json`
+
+   - If the file doesn't exist or is expired, MCI connects to the MCP server
+   - Fetches all tools and builds a complete MCI-compatible toolset
+   - Saves the toolset to the cache file with an expiration date
+   - Applies filtering based on the server's `config`
+
+2. **Subsequent Loads**: MCI uses the cached toolset file if it exists and hasn't expired
+
+   - No connection to the MCP server is needed
+   - Much faster initialization
+   - Tools are ready immediately
+
+3. **Expiration**: When a cached toolset expires (based on `expiresAt` date):
+   - MCI automatically re-fetches tools from the MCP server
+   - Updates the cache file with fresh data and a new expiration date
+
+## Using MCP Tools
+
+Once registered, MCP tools work just like regular MCI tools:
+
+```python
+from mcipy import MCIClient
+
+# Load schema with MCP servers
+client = MCIClient(
+    schema_file_path="my-tools.mci.json",
+    env_vars={
+        "API_KEY": "your-api-key",
+        "GITHUB_MCP_PAT": "your-github-token"
+    }
+)
+
+# List all tools (includes MCP tools)
+all_tools = client.tools()
+
+# Filter to get only MCP tools from a specific server
+filesystem_tools = client.toolsets(["filesystem"])
+
+# Execute an MCP tool
+result = client.execute(
+    tool_name="read_file",
+    properties={"path": "/path/to/file.txt"}
+)
+
+if not result.result.isError:
+    print(result.result.content[0].text)
+```
+
+## Filtering MCP Tools
+
+MCP tools support the same filtering as regular tools:
+
+### Filter by Server Name (Toolset)
+
+```python
+# Get tools from specific MCP server
+fs_tools = client.toolsets(["filesystem"])
+github_tools = client.toolsets(["github"])
+```
+
+### Filter by Tool Names
+
+```python
+# Include only specific tools
+specific_tools = client.only(["read_file", "write_file"])
+
+# Exclude specific tools
+safe_tools = client.without(["delete_file", "format_disk"])
+```
+
+### Filter by Tags
+
+```python
+# Include tools with specific tags
+read_tools = client.tags(["read"])
+
+# Exclude tools with specific tags
+safe_tools = client.withoutTags(["write", "delete"])
+```
+
+### Schema-Level Filtering
+
+You can also filter at the schema level in the server config:
+
+```json
+{
+  "mcp_servers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/tmp"],
+      "config": {
+        "filter": "only",
+        "filterValue": "read_file,list_directory"
+      }
+    }
+  }
+}
+```
+
+This filters tools at registration time, so only the specified tools are loaded from the cache.
+
+## MCP Execution Type
+
+Cached MCP tools use the `"mcp"` execution type in their toolset files:
+
+```json
+{
+  "name": "read_file",
+  "description": "Read contents of a file",
+  "execution": {
+    "type": "mcp",
+    "serverName": "filesystem",
+    "toolName": "read_file"
+  }
+}
+```
+
+When executing MCP tools:
+
+- MCI connects to the registered MCP server
+- Calls the tool directly using the MCP protocol
+- Returns results in MCI's standard format
+
+## Environment Variable Templating
+
+MCP server configurations support templating for environment variables:
+
+```json
+{
+  "mcp_servers": {
+    "api_server": {
+      "command": "{{env.MCP_COMMAND}}",
+      "args": ["{{env.MCP_SERVER_PATH}}"],
+      "env": {
+        "API_KEY": "{{env.MY_API_KEY}}",
+        "BASE_URL": "{{env.API_BASE_URL}}"
+      }
+    }
+  }
+}
+```
+
+```python
+client = MCIClient(
+    schema_file_path="schema.mci.json",
+    env_vars={
+        "MCP_COMMAND": "npx",
+        "MCP_SERVER_PATH": "@my/mcp-server",
+        "MY_API_KEY": "secret-key-123",
+        "API_BASE_URL": "https://api.example.com"
+    }
+)
+```
+
+## Cache Management
+
+### Cache Location
+
+By default, MCP toolset caches are stored in:
+
+```
+{libraryDir}/mcp/{serverName}.mci.json
+```
+
+With default `libraryDir` being `"./mci"`, caches are at:
+
+```
+./mci/mcp/filesystem.mci.json
+./mci/mcp/github.mci.json
+```
+
+### Manual Cache Refresh
+
+To force a refresh of MCP toolsets:
+
+1. Delete the cache files in `{libraryDir}/mcp/`
+2. Reload your schema - MCI will re-fetch from the MCP servers
+
+### Viewing Cache Contents
+
+Cached toolset files are standard MCI toolset files. You can inspect them:
+
+```bash
+cat ./mci/mcp/filesystem.mci.json
+```
+
+They contain:
+
+- `schemaVersion`: Matches your main schema version
+- `metadata`: Server name and description
+- `tools`: All tools from the MCP server (with MCP execution type)
+- `expiresAt`: ISO 8601 timestamp when cache expires
+
+## Example: Complete Integration
+
+Here's a complete example combining MCP servers with regular MCI tools:
+
+```json
+{
+  "schemaVersion": "1.0",
+  "metadata": {
+    "name": "My Complete Toolset",
+    "description": "Combining MCI and MCP tools"
+  },
+  "libraryDir": "./mci",
+  "mcp_servers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/workspace"],
+      "config": {
+        "expDays": 7,
+        "filter": "except",
+        "filterValue": "delete_file,format_disk"
+      }
+    },
+    "api_server": {
+      "type": "http",
+      "url": "https://api.example.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer {{env.API_TOKEN}}"
+      },
+      "config": {
+        "expDays": 30
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "custom_tool",
+      "description": "My custom tool",
+      "execution": {
+        "type": "text",
+        "text": "Custom result: {{props.input}}"
+      }
+    }
+  ]
+}
+```
+
+```python
+from mcipy import MCIClient
+
+client = MCIClient(
+    schema_file_path="schema.mci.json",
+    env_vars={"API_TOKEN": "my-secret-token"}
+)
+
+# List all tools (MCP + regular)
+tools = client.tools()
+print(f"Total tools: {len(tools)}")
+
+# Separate by source
+mcp_tools = [t for t in tools if t.toolset_source]
+regular_tools = [t for t in tools if not t.toolset_source]
+
+print(f"MCP tools: {len(mcp_tools)}")
+print(f"Regular tools: {len(regular_tools)}")
+
+# Execute tools from different sources
+result1 = client.execute("read_file", {"path": "/workspace/data.txt"})  # MCP tool
+result2 = client.execute("custom_tool", {"input": "Hello"})  # Regular tool
+```
+
+## Troubleshooting
+
+### MCP Server Not Available
+
+If an MCP server is not available during schema loading:
+
+- MCI will raise a `SchemaParserError` with details
+- Check that the MCP server command/URL is correct
+- Ensure required environment variables are set
+- For STDIO servers, verify the command is in PATH
+
+### Cache Issues
+
+If you're seeing stale data:
+
+- Check the `expiresAt` date in the cache file
+- Delete cache files to force a refresh
+- Reduce `expDays` for more frequent updates
+
+### Tool Not Found
+
+If an MCP tool isn't available:
+
+- Check if it was filtered out by the server config
+- Verify the MCP server actually provides that tool
+- Clear cache and reload to get fresh tool list
+
+## Best Practices
+
+1. **Set Appropriate Expiration**: Use shorter `expDays` for frequently changing APIs, longer for stable ones
+2. **Use Filtering**: Filter MCP tools to only include what you need for performance
+3. **Environment Variables**: Keep credentials in environment variables, not in schema files
+4. **Cache in .gitignore**: Add `mci/mcp/` to `.gitignore` to avoid committing cache files
+5. **Error Handling**: Always check `result.result.isError` when executing MCP tools
+
+## See Also
+
+- [MCP Protocol Documentation](https://modelcontextprotocol.io/)
+- [MCI Schema Reference](./schema_reference.md)
+- [MCI API Reference](./api_reference.md)

@@ -1,0 +1,615 @@
+---
+title: "MCP Servers"
+description: "Integrate external MCP servers with automatic caching, filtering, and 20x faster performance than direct connections"
+---
+
+# MCI - MCP Servers
+
+MCP (Model Context Protocol) servers provide external tools that can be integrated into your MCI projects. MCI's MCP integration offers automatic caching, filtering, and significantly better performance than direct MCP connections.
+
+## What are MCP Servers?
+
+**MCP Servers** are external services that expose tools via the Model Context Protocol. They can run:
+
+- **Locally** via STDIO (command-line processes like `npx`, `uvx`)
+- **Remotely** via HTTP/SSE (web-based endpoints)
+
+Examples of MCP servers:
+
+- Filesystem operations (read, write, list files)
+- Memory/storage services
+- GitHub integration
+- Slack integration
+- Database access
+- Custom business logic
+
+## Why Use MCI's MCP Integration?
+
+### Direct MCP Connection (Traditional Approach)
+
+```
+Agent → npx @modelcontextprotocol/server-filesystem
+  ↓
+  List tools (500ms)
+  ↓
+  Execute tool #1 (200ms)
+  ↓
+  Execute tool #2 (200ms)
+  ↓
+  Execute tool #3 (200ms)
+
+Total: ~1.1 seconds for startup + 3 tool calls
+```
+
+### MCI MCP Integration (Better Approach)
+
+```
+Agent → MCI → Cached Toolset (JSON file)
+  ↓
+  List tools (25ms) ← 20x faster!
+  ↓
+  Execute tool #1 → Connect to MCP (200ms)
+  ↓
+  Execute tool #2 → Reuse connection (150ms)
+  ↓
+  Execute tool #3 → Reuse connection (150ms)
+
+Total: ~525ms for startup + 3 tool calls
+```
+
+### Key Benefits
+
+1. **20x Faster Tool Discovery**: Reading from JSON cache vs. connecting to MCP server
+2. **Connection Pooling**: Reuse connections during execution
+3. **Filtering**: Only register needed tools, not all available tools
+4. **Splitting & Combining**: Mix tools from different MCP servers in different MCI files
+5. **No Runtime MCP Dependency**: Agent doesn't need MCP connection to discover tools
+6. **Offline Discovery**: List and inspect tools without server access
+
+## How It Works
+
+### 1. Registration
+
+Register MCP servers in your MCI schema:
+
+```json
+{
+  "schemaVersion": "1.0",
+  "mcp_servers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/workspace"]
+    }
+  }
+}
+```
+
+### 2. First Load (Auto-Caching)
+
+When you first load the schema:
+
+1. MCI connects to the MCP server (`npx @modelcontextprotocol/server-filesystem /workspace`)
+2. Fetches all available tools from the server
+3. Converts them to MCI tool definitions
+4. Saves them to `./mci/mcp/filesystem.mci.json`
+5. Adds expiration timestamp (default: 30 days)
+
+**Generated Cache File** (`./mci/mcp/filesystem.mci.json` example):
+
+```json
+{
+  "schemaVersion": "1.0",
+  "metadata": {
+    "name": "filesystem MCP Server",
+    "description": "Auto-generated toolset from MCP server"
+  },
+  "expiresAt": "2024-02-15",
+  "tools": [
+    {
+      "name": "read_file",
+      "description": "Read the complete contents of a file from the file system",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Path to the file to read"
+          }
+        },
+        "required": ["path"]
+      },
+      "execution": {
+        "type": "mcp",
+        "serverName": "filesystem",
+        "toolName": "read_file"
+      }
+    },
+    {
+      "name": "write_file",
+      "description": "Write content to a file",
+      "execution": {
+        "type": "mcp",
+        "serverName": "filesystem",
+        "toolName": "write_file"
+      }
+    },
+    {
+      "name": "list_directory",
+      "description": "List contents of a directory",
+      "execution": {
+        "type": "mcp",
+        "serverName": "filesystem",
+        "toolName": "list_directory"
+      }
+    }
+  ]
+}
+```
+
+### 3. Subsequent Loads (Fast!)
+
+On subsequent loads:
+
+1. MCI checks for cached file: `./mci/mcp/filesystem.mci.json`
+2. Checks if expired (compares current date with `expiresAt`)
+3. If valid, loads tools from cache (no MCP connection needed)
+4. If expired, re-fetches from server and updates cache
+
+**Performance Comparison:**
+
+| Operation            | Direct MCP       | MCI Cached |
+| -------------------- | ---------------- | ---------- |
+| Tool Discovery       | 500ms            | 25ms       |
+| Tool Execution       | 200ms            | 200ms      |
+| **Total (1st time)** | 700ms            | 525ms      |
+| **Total (cached)**   | N/A (no caching) | 225ms      |
+
+> **Note:** Direct MCP does not cache tool definitions, so its performance is always 700ms. The "cached" value is not applicable for Direct MCP.
+
+> **Note:** Examples here are average for NPX-based MCPs. HTTP-based performance hardly vary, but generally is slower than local servers.
+
+### 4. Tool Execution
+
+When you execute an MCP tool:
+
+1. MCI reads the cached tool definition
+2. Connects to the registered MCP server
+3. Calls the tool via MCP protocol
+4. Returns result in standard MCI format
+
+The MCP server is **only contacted during execution**, not during tool discovery.
+
+> **Note:** MCI currently supports only Tools from MCP, since it is the most requested (And useful TBH) feature. Resources & Prompts can be added using MCI's `text` and `file` execution types.
+
+## Registering MCP Servers
+
+### STDIO Server (Local)
+
+**npx Example:**
+
+```json
+{
+  "mcp_servers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/workspace"],
+      "env": {
+        "DEBUG": "1"
+      }
+    }
+  }
+}
+```
+
+**uvx Example:**
+
+```json
+{
+  "mcp_servers": {
+    "memory": {
+      "command": "uvx",
+      "args": ["mcp-server-memory"],
+      "env": {
+        "LOG_LEVEL": "info"
+      }
+    }
+  }
+}
+```
+
+### HTTP Server (Remote)
+
+```json
+{
+  "mcp_servers": {
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer {{env.GITHUB_MCP_PAT}}"
+      }
+    }
+  }
+}
+```
+
+### Multiple Servers
+
+```json
+{
+  "mcp_servers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/data"]
+    },
+    "memory": {
+      "command": "uvx",
+      "args": ["mcp-server-memory"]
+    },
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer {{env.GITHUB_TOKEN}}"
+      }
+    }
+  }
+}
+```
+
+## Filtering MCP Tools
+
+One of the most powerful features is the ability to filter which tools are loaded from MCP servers.
+
+### Basic Filtering
+
+**Include Only Specific Tools:**
+
+```json
+{
+  "mcp_servers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/workspace"],
+      "config": {
+        "filter": "only",
+        "filterValue": "read_file,write_file,list_directory"
+      }
+    }
+  }
+}
+```
+
+Result: Only `read_file`, `write_file`, and `list_directory` tools are registered.
+
+**Exclude Dangerous Tools:**
+
+```json
+{
+  "mcp_servers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/workspace"],
+      "config": {
+        "filter": "except",
+        "filterValue": "delete_file,move_file"
+      }
+    }
+  }
+}
+```
+
+Result: All filesystem tools except `delete_file` and `move_file` are registered.
+
+**Filter by Tags:**
+
+```json
+{
+  "mcp_servers": {
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer {{env.GITHUB_TOKEN}}"
+      },
+      "config": {
+        "filter": "tags",
+        "filterValue": "read,search"
+      }
+    }
+  }
+}
+```
+
+Result: Only tools tagged with `"read"` or `"search"` are registered.
+
+## Splitting & Combining MCP Tools
+
+You can split tools from a single MCP server across multiple MCI files, or combine tools from different MCP servers into one MCI file.
+
+### Splitting: One MCP Server → Multiple MCI Files
+
+**Production Tools (prod-tools.mci.json):**
+
+```json
+{
+  "schemaVersion": "1.0",
+  "mcp_servers": {
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer {{env.GITHUB_TOKEN}}"
+      },
+      "config": {
+        "filter": "tags",
+        "filterValue": "isReadOnly"
+      }
+    }
+  }
+}
+```
+
+**Development Tools (dev-tools.mci.json):**
+
+```json
+{
+  "schemaVersion": "1.0",
+  "mcp_servers": {
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer {{env.GITHUB_TOKEN}}"
+      },
+      "config": {
+        "filter": "withoutTags",
+        "filterValue": "destructive"
+      }
+    }
+  }
+}
+```
+
+Result: Different agents can access different subsets of GitHub tools.
+
+### Combining: Multiple MCP Servers → One MCI File
+
+```json
+{
+  "schemaVersion": "1.0",
+  "mcp_servers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/data"],
+      "config": {
+        "filter": "only",
+        "filterValue": "read_file,list_directory"
+      }
+    },
+    "memory": {
+      "command": "uvx",
+      "args": ["mcp-server-memory"]
+    },
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer {{env.GITHUB_TOKEN}}"
+      },
+      "config": {
+        "filter": "tags",
+        "filterValue": "read"
+      }
+    }
+  }
+}
+```
+
+Result: A single agent has access to filesystem, memory, and GitHub tools, all filtered appropriately.
+
+## Cache Management
+
+### Cache Location
+
+Default location: `./mci/mcp/{serverName}.mci.json`
+
+```
+project/
+└── mci/
+    ├── weather.mci.json      # Regular toolset
+    └── mcp/                  # MCP cache directory
+        ├── filesystem.mci.json
+        ├── memory.mci.json
+        └── github.mci.json
+```
+
+### Expiration Configuration
+
+Set custom expiration in days:
+
+```json
+{
+  "mcp_servers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["..."],
+      "config": {
+        "expDays": 7 // Refresh every 7 days
+      }
+    }
+  }
+}
+```
+
+**Default**: 30 days
+
+**Recommendations:**
+
+- **Frequently changing APIs**: 1-7 days
+- **Stable services**: 30-90 days
+- **Development**: 1 day
+
+### Manual Cache Refresh
+
+**Delete specific cache:**
+
+```bash
+rm ./mci/mcp/filesystem.mci.json
+```
+
+**Delete all MCP caches:**
+
+```bash
+rm -rf ./mci/mcp/
+```
+
+Next load will re-fetch from servers.
+
+### Git Ignore
+
+Add to `.gitignore`:
+
+```
+# MCP cache files
+mci/mcp/
+```
+
+**Rationale**: Cache files are auto-generated and can differ between environments.
+
+## Performance Benefits
+
+### 1. Faster Tool Discovery
+
+**Scenario**: Agent wants to see all available tools
+
+| Method      | Time           | Notes                          |
+| ----------- | -------------- | ------------------------------ |
+| Direct MCP  | 500ms          | Connect to server, fetch tools |
+| MCI Cached  | 25ms           | Read from JSON file            |
+| **Speedup** | **20x faster** |                                |
+
+### 2. Offline Tool Inspection
+
+```bash
+# View available MCP tools without server access
+cat ./mci/mcp/filesystem.mci.json
+```
+
+### 3. Reduced Server Load
+
+- Tools are fetched once per cache period (e.g., 30 days)
+- Thousands of agents can use the same cache
+- Server is only contacted during tool execution
+
+### 4. Faster Multi-Agent Systems
+
+**Without MCI Caching:**
+
+- 10 agents × 500ms discovery = 5 seconds total
+
+**With MCI Caching:**
+
+- 10 agents × 25ms discovery = 250ms total
+- **20x faster startup**
+
+## Best Practices
+
+### 1. Set Appropriate Expiration
+
+```json
+{
+  "config": {
+    "expDays": 7 // Balance between freshness and performance
+  }
+}
+```
+
+### 2. Filter Aggressively
+
+Only load tools you actually need:
+
+```json
+{
+  "config": {
+    "filter": "only",
+    "filterValue": "read_file,write_file" // Just what you need
+  }
+}
+```
+
+### 3. Use Environment Variables
+
+```json
+{
+  "mcp_servers": {
+    "api": {
+      "type": "http",
+      "url": "{{env.MCP_URL}}",
+      "headers": {
+        "Authorization": "Bearer {{env.MCP_TOKEN}}"
+      }
+    }
+  }
+}
+```
+
+> Note: MCIClient object supports env_vars as well as when registering with `uvx mci run` in any MCP client (For example, cursor or vscode) you can pass env variables, which will be resolved in whole "mci.json" file, as well as in "mcp_servers" part
+
+### 4. Add to .gitignore
+
+```
+mci/mcp/
+```
+
+### 5. Document Server Requirements
+
+```json
+{
+  "metadata": {
+    "description": "Requires GITHUB_TOKEN environment variable for MCP server"
+  }
+}
+```
+
+## Troubleshooting
+
+### Cache is Stale
+
+**Solution**: Delete and re-fetch
+
+```bash
+rm ./mci/mcp/filesystem.mci.json
+```
+
+### Server Not Available
+
+**Error**: `Failed to connect to MCP server: filesystem`
+
+**Solutions**:
+
+1. Check server command is correct
+2. Verify `npx` or `uvx` is installed
+3. Check network connectivity for HTTP servers
+4. Verify credentials (API tokens)
+
+### Tools Not Appearing
+
+**Solutions**:
+
+1. Check cache expiration
+2. Verify filter configuration
+3. Delete cache and reload
+4. Check server is providing tools
+
+## Summary
+
+- **MCP Integration**: Connect to external MCP servers for additional tools
+- **Automatic Caching**: Tools cached in `./mci/mcp/` for fast access
+- **20x Faster Discovery**: Read from JSON vs. connecting to server
+- **Filtering**: Control which tools are registered
+- **Splitting & Combining**: Mix MCP tools across different MCI files
+- **No Runtime Dependency**: Agents don't need MCP connection to discover tools
+- **Performance**: Significantly faster than direct npx-based MCP
+
+MCI's MCP integration provides the best of both worlds: the flexibility of MCP servers with the performance and control of static tool definitions.
