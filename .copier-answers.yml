@@ -1,0 +1,10 @@
+# Changes here will be overwritten by Copier. Do not edit manually.
+_commit: v0.2.19
+_src_path: gh:jlevy/simple-modern-uv
+package_author_email: revaz@usemci.dev
+package_author_name: maestroerror
+package_description: 'CLI tool designed to manage MCI (Model Context Interface) schemas
+    and dynamically run MCP servers using defined MCI toolsets '
+package_github_org: Model-Context-Interface
+package_module: mci
+package_name: mci
