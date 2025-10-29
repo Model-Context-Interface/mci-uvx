@@ -8,6 +8,8 @@ utilities for file format detection and validation.
 
 from pathlib import Path
 
+from mci.utils.validation import file_exists
+
 
 class MCIFileFinder:
     """
@@ -62,6 +64,8 @@ class MCIFileFinder:
         """
         Check if a file exists at the given path.
 
+        Delegates to the validation utility module to avoid code duplication.
+
         Args:
             path: The file path to validate
 
@@ -72,11 +76,7 @@ class MCIFileFinder:
             >>> finder = MCIFileFinder()
             >>> exists = finder.validate_file_exists("./mci.json")
         """
-        try:
-            file_path = Path(path)
-            return file_path.exists() and file_path.is_file()
-        except (OSError, ValueError):
-            return False
+        return file_exists(path)
 
     @staticmethod
     def get_file_format(path: str) -> str | None:
