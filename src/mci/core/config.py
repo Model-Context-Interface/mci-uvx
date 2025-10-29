@@ -58,9 +58,10 @@ class MCIConfig:
         """
         Validate an MCI schema file using MCIClient.
 
-        This method attempts to load the schema using MCIClient and returns
-        validation results. MCIClient performs comprehensive validation including
-        schema structure, required fields, and data types.
+        This method validates the schema using MCIClient in validation-only mode,
+        which skips template resolution for MCP servers and other runtime concerns.
+        MCIClient performs comprehensive validation including schema structure,
+        required fields, and data types.
 
         Args:
             file_path: Path to the MCI schema file to validate
@@ -78,7 +79,9 @@ class MCIConfig:
             ...     print(f"Validation failed: {error}")
         """
         try:
-            MCIConfig.load(file_path, env_vars)
+            # Use validating=True to skip template resolution for MCP servers
+            # This allows validation without requiring all env_vars at validation time
+            MCIClient(schema_file_path=file_path, env_vars=env_vars or {}, validating=True)
             return (True, "")
         except MCIClientError as e:
             return (False, str(e))

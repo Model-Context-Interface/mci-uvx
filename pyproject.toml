@@ -39,7 +39,7 @@ classifiers = [
 
 dependencies = [
     "click>=8.3.0",
-    "mci-py>=1.1.0",
+    "mci-py>=1.1.1",
     "mcp>=1.19.0",
     "pyyaml>=6.0.3",
     "rich>=14.2.0",

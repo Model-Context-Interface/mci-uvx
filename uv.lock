@@ -295,7 +295,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "click", specifier = ">=8.3.0" },
-    { name = "mci-py", specifier = ">=1.1.0" },
+    { name = "mci-py", specifier = ">=1.1.1" },
     { name = "mcp", specifier = ">=1.19.0" },
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "rich", specifier = ">=14.2.0" },
@@ -314,7 +314,7 @@ dev = [
 
 [[package]]
 name = "mci-py"
-version = "1.1.0"
+version = "1.1.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "mcp", extra = ["cli"] },
@@ -322,9 +322,9 @@ dependencies = [
     { name = "pyyaml" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3c/c6/b7d83fffe71f4f0168236bda78284c3390e49d76897a8f337446ac21e987/mci_py-1.1.0.tar.gz", hash = "sha256:b52bd19eff10705fa2798fe3cc28589f502aaa8a9b368ff1fdcd5cdb5b89ac7f", size = 252840, upload-time = "2025-10-29T00:04:53.859Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fe/e3/18ccff511a9c83409d3b5ff6252727c3561b47f4a2e78234ee00abb64855/mci_py-1.1.1.tar.gz", hash = "sha256:f502269cf8deafad899eab1664d4c5d6f8637f91e1b6bce7c75f9f7ca38290b3", size = 258270, upload-time = "2025-10-29T15:57:24.179Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b5/9b/b751df306614b5579c8a2e6dcb8dcede4743ac80f87d9f8e83a1433be1a6/mci_py-1.1.0-py3-none-any.whl", hash = "sha256:0c1f01dd44be70600bde56e87bccb8a4eabe770b1c8e9bceef217410a6c16a55", size = 46178, upload-time = "2025-10-29T00:04:52.803Z" },
+    { url = "https://files.pythonhosted.org/packages/c8/29/f6615973ade2e1aa04c9c2dc432c03715627220ef9012615260a9f082d4e/mci_py-1.1.1-py3-none-any.whl", hash = "sha256:b8fbc74bd41aeec269766afbe7c430847f938c7865d338f9ab04e4b562ffb1f2", size = 47008, upload-time = "2025-10-29T15:57:23.177Z" },
 ]
 
 [[package]]
