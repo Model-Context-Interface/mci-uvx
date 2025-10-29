@@ -9,17 +9,18 @@ The `MCIClient` class is the main entry point for the MCI Python adapter. It pro
 
 ### Initialization
 
-#### `MCIClient(schema_file_path=None, env_vars=None, json_file_path=None)`
+#### `MCIClient(schema_file_path=None, env_vars=None, json_file_path=None, validating=False)`
 
 Initialize the MCI client with a schema file and optional environment variables.
 
 **Parameters:**
 
-| Name               | Type             | Required      | Description                                                                      |
-| ------------------ | ---------------- | ------------- | -------------------------------------------------------------------------------- |
-| `schema_file_path` | `str`            | Conditional\* | Path to the MCI schema file (`.json`, `.yaml`, or `.yml`)                        |
-| `env_vars`         | `dict[str, Any]` | No            | Environment variables for template substitution (default: `{}`)                  |
-| `json_file_path`   | `str`            | Conditional\* | **DEPRECATED.** Use `schema_file_path` instead. Kept for backward compatibility. |
+| Name               | Type             | Required      | Description                                                                                                                                                   |
+| ------------------ | ---------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `schema_file_path` | `str`            | Conditional\* | Path to the MCI schema file (`.json`, `.yaml`, or `.yml`)                                                                                                     |
+| `env_vars`         | `dict[str, Any]` | No            | Environment variables for template substitution (default: `{}`)                                                                                               |
+| `json_file_path`   | `str`            | Conditional\* | **DEPRECATED.** Use `schema_file_path` instead. Kept for backward compatibility.                                                                              |
+| `validating`       | `bool`           | No            | Enable pure schema validation mode without loading MCP servers, toolsets, or resolving templates. Tool execution is disabled in this mode. (default: `False`) |
 
 \*Either `schema_file_path` or `json_file_path` must be provided.
 
@@ -49,6 +50,16 @@ client = MCIClient(
     }
 )
 
+# Validating mode: validate schema without loading toolsets or MCP servers
+# Useful for CI validation, IDE plugins, or schema checking
+client = MCIClient(
+    schema_file_path="example.mci.json",
+    validating=True  # No env vars needed, no side effects
+)
+
+# Check what tools are defined (inline tools only in validating mode)
+tool_names = client.list_tools()
+
 # Backward compatibility: json_file_path still works
 client = MCIClient(json_file_path="example.mci.json")
 # Works with YAML too
@@ -67,6 +78,61 @@ MCIClientError: Failed to load schema from invalid.json: [Errno 2] No such file 
 
 # Unsupported file extension
 MCIClientError: Failed to load schema from file.txt: Unsupported file extension '.txt'. Supported extensions: .json, .yaml, .yml
+```
+
+#### Validating Mode
+
+When `validating=True` is specified, the client operates in a special validation-only mode:
+
+**What happens in validating mode:**
+
+- ✅ Schema file is parsed and validated (JSON/YAML syntax, structure, types)
+- ✅ Schema version is checked for compatibility
+- ✅ Tool definitions are validated (required fields, execution types)
+- ✅ Toolset files are checked for existence (but not loaded)
+- ✅ MCP server configurations are validated (but servers are not contacted)
+- ✅ Read-only operations work normally (`list_tools()`, `tools()`, `only()`, `without()`, etc.)
+
+**What does NOT happen in validating mode:**
+
+- ❌ No template resolution (placeholders like `{{env.VAR}}` are accepted as-is)
+- ❌ No MCP server connections or tool fetching
+- ❌ No toolset file loading (only existence is checked)
+- ❌ No file writes or cache directory creation
+- ❌ No network requests
+- ❌ Tool execution is blocked (raises `MCIClientError`)
+
+**Use cases for validating mode:**
+
+- **CI/CD validation**: Check schema validity without requiring environment variables
+- **IDE/Editor plugins**: Validate schemas and provide autocomplete without side effects
+- **Schema testing**: Verify schema structure before deployment
+- **Documentation generation**: Parse schemas to generate tool documentation
+- **Pre-deployment checks**: Validate schemas before committing to version control
+
+**Example:**
+
+```python
+from mcipy import MCIClient, MCIClientError
+
+# Validate a schema with MCP servers that require env vars
+client = MCIClient(
+    schema_file_path="schema_with_mcp.mci.json",
+    validating=True  # No env vars needed!
+)
+
+# This works - checking what tools are defined
+print(f"Schema contains {len(client.list_tools())} inline tools")
+
+# This works - listing toolsets (just checks they exist)
+# Toolsets are not loaded, so tools from toolsets won't appear in list_tools()
+
+# This raises an error - execution is disabled
+try:
+    client.execute("some_tool", {})
+except MCIClientError as e:
+    print(f"Expected error: {e}")
+    # Output: Tool execution is disabled in validating mode. Initialize MCIClient with validating=False to execute tools.
 ```
 
 ---
