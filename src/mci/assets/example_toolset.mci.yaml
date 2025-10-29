@@ -21,5 +21,3 @@ tools:
     enableAnyPaths: false
     directoryAllowList:
       - '{{env.PROJECT_ROOT}}'
-toolsets: []
-mcp_servers: {}
