@@ -10,8 +10,7 @@ This document outlines the implementation plan for the **MCI CLI Tool** (`mci-uv
 - **[click](https://github.com/pallets/click)** (15.5k+ stars) - Modern Python CLI framework with excellent developer experience
 - **[rich](https://github.com/Textualize/rich)** (48k+ stars) - Beautiful terminal formatting, tables, and progress bars
 - **[pyyaml](https://github.com/yaml/pyyaml)** (2.5k+ stars) - YAML parsing and serialization
-- **[pydantic](https://github.com/pydantic/pydantic)** (20k+ stars) - Data validation and settings management
-- **[mci-py](https://github.com/Model-Context-Interface/mci-py)** - MCI Python adapter for schema parsing and tool execution
+- **[mci-py](https://github.com/Model-Context-Interface/mci-py)** - MCI Python adapter for schema parsing and tool execution (includes Pydantic models)
 - **[mcp](https://github.com/modelcontextprotocol/python-sdk)** - Official Python SDK for Model Context Protocol
 
 ### Development & Testing
@@ -19,6 +18,11 @@ This document outlines the implementation plan for the **MCI CLI Tool** (`mci-uv
 - **pytest-asyncio** - Async test support for MCP integration
 - **pytest-mock** - Mocking utilities for tests
 - **pytest-cov** - Coverage reporting
+
+### Notes on Dependencies
+
+- **Pydantic is NOT needed as a separate dependency** - it's already included in `mci-py` which provides all necessary Pydantic models for tool definitions, schemas, and validation
+- The CLI tool should use mci-py's models directly rather than creating new ones
 
 ---
 
@@ -41,7 +45,7 @@ src/mci/
 ```
 
 ### Files to Create/Modify
-- **pyproject.toml** - Add core dependencies (click, rich, pyyaml, pydantic, mci-py, mcp)
+- **pyproject.toml** - Add core dependencies (click, rich, pyyaml, mci-py, mcp) - Note: Pydantic not needed separately as it's in mci-py
 - **src/mci/__init__.py** - Export main CLI entry point
 - **src/mci/mci.py** - Basic Click application structure
 - **src/mci/cli/__init__.py** - CLI command group initialization
@@ -74,7 +78,7 @@ None for this stage.
 ## Stage 2: Configuration & File Discovery
 
 ### Goal
-Implement logic to find and load MCI configuration files (JSON/YAML).
+Implement logic to find and load MCI configuration files (JSON/YAML) using mci-py's MCIClient for validation.
 
 ### Directories to Create
 ```
@@ -84,7 +88,7 @@ src/mci/core/
 ```
 
 ### Files to Create/Modify
-- **src/mci/core/config.py** - Config class for managing MCI file paths, validation
+- **src/mci/core/config.py** - Config class for managing MCI file paths, validation using MCIClient
 - **src/mci/core/file_finder.py** - Logic to find mci.json/mci.yaml in directory
 - **src/mci/utils/validation.py** - File validation utilities
 
@@ -94,8 +98,13 @@ src/mci/core/
   - `validate_file_exists(path: str) -> bool` - Check if file exists
   - `get_file_format(path: str) -> str` - Determine if JSON or YAML
 - `MCIConfig` class with methods:
-  - `load(file_path: str) -> dict` - Load and parse MCI file
-  - `validate_schema(data: dict) -> bool` - Basic schema validation
+  - `load(file_path: str) -> MCIClient` - Load and parse MCI file using MCIClient in try block
+  - `validate_schema(file_path: str) -> tuple[bool, str]` - Validate using MCIClient, return (is_valid, error_message)
+
+### Implementation Notes
+- **MCI schema validation is already built into `mci-py`**, so use MCIClient in a try block to parse the file
+- If MCIClient initialization fails, catch the exception and extract error details for user-friendly messages
+- This approach leverages mci-py's built-in validation instead of duplicating validation logic
 
 ### Tests
 
@@ -106,21 +115,22 @@ src/mci/core/
   - `test_find_priority_json_over_yaml()` - JSON takes priority
   - `test_no_file_found()` - Return None when no file exists
 - `tests/unit/core/test_config.py`
-  - `test_load_json_config()` - Load valid JSON config
-  - `test_load_yaml_config()` - Load valid YAML config
-  - `test_invalid_json_syntax()` - Handle malformed JSON
-  - `test_invalid_yaml_syntax()` - Handle malformed YAML
+  - `test_load_valid_schema_with_mciclient()` - Load valid schema using MCIClient
+  - `test_invalid_schema_caught_by_mciclient()` - MCIClient catches invalid schema
+  - `test_missing_file_error()` - Handle missing file errors
+  - `test_error_message_extraction()` - Extract user-friendly error messages from MCIClient exceptions
 
 #### Feature Tests
-- `tests/test_config_loading.py` - Test end-to-end config loading with sample files
+- `tests/test_config_loading.py` - Test end-to-end config loading with sample files using MCIClient
 
 #### Manual Tests
 None for this stage.
 
 ### Success Criteria
 - [ ] Can find mci.json and mci.yaml files
-- [ ] Can load and parse both JSON and YAML formats
-- [ ] Proper error handling for missing/invalid files
+- [ ] Can load and validate files using MCIClient
+- [ ] Proper error handling using MCIClient's validation
+- [ ] User-friendly error messages extracted from MCIClient exceptions
 - [ ] All tests pass
 
 ---
@@ -153,6 +163,44 @@ src/mci/cli/
 - `create_mci_directory() -> None` - Create ./mci directory structure
 - `create_example_toolset() -> None` - Create example.mci.json
 
+### Initial MCI File Structure
+
+The `mci.json` template should create this starting structure:
+
+```json
+{
+  "schemaVersion": "1.0",
+  "metadata": {
+    "name": "Example Project",
+    "description": "Example MCI configuration"
+  },
+  "tools": [
+    {
+      "name": "echo_test",
+      "description": "Simple echo test tool",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Message to echo"
+          }
+        },
+        "required": ["message"]
+      },
+      "execution": {
+        "type": "text",
+        "text": "Echo: {{props.message}}"
+      }
+    }
+  ],
+  "toolsets": [],
+  "mcp_servers": {}
+}
+```
+
+The `mci.yaml` template should have the equivalent YAML structure.
+
 ### Tests
 
 #### Unit Tests
@@ -182,7 +230,7 @@ src/mci/cli/
 ## Stage 4: MCI-PY Integration & Tool Loading
 
 ### Goal
-Integrate mci-py library for loading and managing MCI tools.
+Integrate mci-py library for loading and managing MCI tools using MCIClient.
 
 ### Directories to Create
 ```
@@ -196,30 +244,46 @@ src/mci/core/
 - **src/mci/core/tool_manager.py** - Tool filtering and listing logic
 - **src/mci/utils/error_handler.py** - Error handling utilities
 
+### Implementation Notes
+
+**IMPORTANT: Use MCIClient from mci-py for all tool loading and filtering operations.**
+
+- The `MCIClient` class from mci-py already provides all necessary functionality:
+  - Loading tools from schema files (JSON/YAML)
+  - Built-in filtering methods: `only()`, `except_()`, `tags()`, `withoutTags()`
+  - Environment variable templating
+  - Pydantic models for tool definitions
+- **Check mci-docs** for full MCIClient API reference and usage examples
+- Do NOT reimplement filtering logic - use MCIClient's built-in methods
+- The wrapper should primarily handle CLI-specific error handling and formatting
+- MCIClient already includes all needed Pydantic models for validation
+
 ### Classes/Functions
 - `MCIClientWrapper` class with methods:
-  - `__init__(file_path: str, env_vars: dict = None)`
-  - `load_tools() -> list[Tool]` - Load all tools from schema
-  - `apply_filters(filter_type: str, filter_value: str) -> list[Tool]`
+  - `__init__(file_path: str, env_vars: dict = None)` - Initialize MCIClient
+  - `get_tools() -> list[Tool]` - Get all tools using MCIClient.tools()
+  - `filter_only(tool_names: list[str]) -> list[Tool]` - Use MCIClient.only()
+  - `filter_except(tool_names: list[str]) -> list[Tool]` - Use MCIClient.except_()
+  - `filter_tags(tags: list[str]) -> list[Tool]` - Use MCIClient.tags()
+  - `filter_without_tags(tags: list[str]) -> list[Tool]` - Use MCIClient.withoutTags()
 - `ToolManager` class with methods:
-  - `list_tools(client: MCIClientWrapper) -> list[ToolInfo]`
-  - `filter_tools(tools: list[Tool], filter_spec: str) -> list[Tool]`
-  - `parse_filter_spec(filter_spec: str) -> tuple[str, list[str]]`
+  - `apply_filter_spec(client: MCIClient, filter_spec: str) -> list[Tool]`
+  - `parse_filter_spec(filter_spec: str) -> tuple[str, list[str]]` - Parse CLI filter string
 
 ### Tests
 
 #### Unit Tests
 - `tests/unit/core/test_mci_client.py`
-  - `test_load_valid_schema()` - Load schema successfully
-  - `test_invalid_schema_error()` - Handle invalid schema
+  - `test_load_valid_schema()` - Load schema successfully using MCIClient
+  - `test_invalid_schema_error()` - Handle invalid schema from MCIClient
   - `test_missing_file_error()` - Handle missing file
   - `test_env_var_substitution()` - Test environment variable templating
+  - `test_use_mciclient_filtering()` - Verify MCIClient filter methods are used
 - `tests/unit/core/test_tool_manager.py`
-  - `test_list_all_tools()` - List all available tools
-  - `test_filter_by_tags()` - Filter tools by tags
-  - `test_filter_only()` - Filter with "only" type
-  - `test_filter_except()` - Filter with "except" type
-  - `test_parse_filter_spec()` - Parse filter specification
+  - `test_parse_filter_spec()` - Parse CLI filter specification
+  - `test_apply_filter_only()` - Apply "only" filter via MCIClient
+  - `test_apply_filter_except()` - Apply "except" filter via MCIClient
+  - `test_apply_filter_tags()` - Apply "tags" filter via MCIClient
 
 #### Feature Tests
 - `tests/test_mci_integration.py` - Test mci-py integration with sample schemas
@@ -228,10 +292,11 @@ src/mci/core/
 - `testsManual/test_tool_loading.py` - Load real MCI files and display tools
 
 ### Success Criteria
-- [ ] Can load tools from MCI JSON/YAML files
-- [ ] Environment variable templating works
-- [ ] Filtering logic works correctly
+- [ ] Uses MCIClient from mci-py for all operations
+- [ ] Leverages MCIClient's built-in filtering methods
+- [ ] Environment variable templating works via MCIClient
 - [ ] Proper error messages for invalid schemas
+- [ ] No reimplementation of mci-py functionality
 - [ ] All tests pass
 
 ---
@@ -240,6 +305,15 @@ src/mci/core/
 
 ### Goal
 Implement the `list` command to display available tools.
+
+### Implementation Notes
+
+**IMPORTANT: The list command should use the same modules that will be used in the run command.**
+
+- The `list` command is designed to test and preview what the `run` command will return
+- Both commands should share the same tool loading and filtering logic
+- This ensures consistency between what `list` shows and what `run` actually provides
+- Use the same MCIClient wrapper and filtering logic that `run` will use
 
 ### Directories to Create
 ```
@@ -253,7 +327,7 @@ src/mci/cli/
 ```
 
 ### Files to Create/Modify
-- **src/mci/cli/list.py** - List command implementation
+- **src/mci/cli/list.py** - List command implementation (reuse tool loading from Stage 4)
 - **src/mci/cli/formatters/table_formatter.py** - Rich table formatter
 - **src/mci/cli/formatters/json_formatter.py** - JSON output formatter
 - **src/mci/cli/formatters/yaml_formatter.py** - YAML output formatter
@@ -280,6 +354,7 @@ src/mci/cli/
   - `test_list_yaml_format()` - YAML file output
   - `test_list_with_filter()` - Apply filters
   - `test_list_verbose()` - Verbose output
+  - `test_list_uses_same_loading_as_run()` - Verify shared logic with run command
 - `tests/unit/cli/formatters/test_table_formatter.py`
   - `test_basic_table()` - Basic table output
   - `test_verbose_table()` - Verbose table with parameters
@@ -301,6 +376,7 @@ src/mci/cli/
 - [ ] `uvx mci list --format=yaml` creates timestamped YAML file
 - [ ] `uvx mci list --verbose` shows detailed tool info
 - [ ] `uvx mci list --filter=tags:Tag1,Tag2` filters correctly
+- [ ] Uses same tool loading/filtering logic as run command
 - [ ] Beautiful output with Rich tables
 - [ ] All tests pass
 
@@ -309,16 +385,25 @@ src/mci/cli/
 ## Stage 6: CLI Command: `mci validate`
 
 ### Goal
-Implement the `validate` command to check MCI schema correctness.
+Implement the `validate` command to check MCI schema correctness using mci-py's built-in validation.
+
+### Implementation Notes
+
+**IMPORTANT: Use mci-py's built-in validation since it already validates the schema.**
+
+- mci-py's `MCIClient` performs comprehensive schema validation during initialization
+- Leverage this built-in validation instead of reimplementing validation logic
+- Additional checks (toolset file existence, MCP command availability) can be added as warnings
+- Use try/except with MCIClient to catch validation errors
 
 ### Directories to Create
 ```
 src/mci/core/
-└── validator.py         # Schema validation logic
+└── validator.py         # Schema validation logic using mci-py
 ```
 
 ### Files to Create/Modify
-- **src/mci/core/validator.py** - Schema validation implementation
+- **src/mci/core/validator.py** - Schema validation using MCIClient
 - **src/mci/cli/validate.py** - Validate command implementation
 - **src/mci/utils/error_formatter.py** - Format validation errors nicely
 - **src/mci/mci.py** - Register validate command
@@ -326,29 +411,27 @@ src/mci/core/
 ### Classes/Functions
 - `validate_command(file: str)` - Click command for `mci validate`
 - `MCIValidator` class with methods:
-  - `validate_schema(file_path: str) -> ValidationResult`
-  - `check_syntax() -> list[ValidationError]` - Check JSON/YAML syntax
-  - `check_required_fields() -> list[ValidationError]` - Check required fields
+  - `validate_schema(file_path: str) -> ValidationResult` - Validate using MCIClient
   - `check_toolset_files() -> list[ValidationWarning]` - Check toolset file existence
   - `check_mcp_commands() -> list[ValidationWarning]` - Check MCP commands in PATH
 - `ValidationResult` dataclass with fields:
-  - `errors: list[ValidationError]`
-  - `warnings: list[ValidationWarning]`
+  - `errors: list[ValidationError]` - From MCIClient exceptions
+  - `warnings: list[ValidationWarning]` - Additional checks
   - `is_valid: bool`
 
 ### Tests
 
 #### Unit Tests
 - `tests/unit/core/test_validator.py`
-  - `test_valid_schema()` - Validate correct schema
-  - `test_missing_required_field()` - Detect missing fields
-  - `test_invalid_json_syntax()` - Detect syntax errors
-  - `test_invalid_toolset_reference()` - Detect missing toolsets
-  - `test_missing_mcp_command()` - Detect missing MCP commands
+  - `test_valid_schema_via_mciclient()` - Validate correct schema using MCIClient
+  - `test_invalid_schema_caught_by_mciclient()` - MCIClient catches invalid schema
+  - `test_missing_required_field()` - Detect missing fields via MCIClient
+  - `test_invalid_toolset_reference()` - Detect missing toolsets (warning)
+  - `test_missing_mcp_command()` - Detect missing MCP commands (warning)
   - `test_warning_collection()` - Collect warnings without failing
 - `tests/unit/cli/test_validate.py`
   - `test_validate_valid_file()` - Validate successful schema
-  - `test_validate_invalid_file()` - Report validation errors
+  - `test_validate_invalid_file()` - Report validation errors from MCIClient
 
 #### Feature Tests
 - `tests/test_validate_command.py` - Test validation with various schema files
@@ -357,9 +440,9 @@ src/mci/core/
 - `testsManual/test_validate.py` - Run validate on real schemas, check output
 
 ### Success Criteria
-- [ ] `uvx mci validate` checks default mci.json/mci.yaml
+- [ ] `uvx mci validate` checks default mci.json/mci.yaml using MCIClient
 - [ ] `uvx mci validate --file=custom.mci.json` checks custom file
-- [ ] Detects syntax errors, missing fields, invalid references
+- [ ] Uses MCIClient for schema validation (no reimplementation)
 - [ ] Shows warnings for missing toolsets and MCP commands
 - [ ] Beautiful, color-coded output using Rich
 - [ ] All tests pass
@@ -421,57 +504,70 @@ src/mci/core/
 
 ---
 
-## Stage 8: MCP Server Integration Setup
+## Stage 8: MCP Server Creation Infrastructure
 
 ### Goal
-Set up infrastructure for running MCP servers via mci-py and mcp SDK.
+Set up infrastructure for creating MCP servers (not connecting to them) that can serve MCI tools.
+
+### Implementation Notes
+
+**IMPORTANT: This stage is about CREATING MCP servers, not connecting to them.**
+
+- We create an MCP server that will serve tools from MCI schemas
+- The server will expose MCI tools as MCP tools to MCP clients
+- Check **mcp-server-docs.md** for examples of how to create MCP servers (to be added later)
+- Use the official `mcp` Python SDK to create the server
+- The server should handle tool listing and tool execution requests via MCP protocol
 
 ### Directories to Create
 ```
 src/mci/core/
-├── mcp_manager.py       # MCP server management
-└── server_runner.py     # Server execution logic
+├── mcp_server.py        # MCP server creation and management
+└── tool_converter.py    # Convert MCI tools to MCP tool format
 ```
 
 ### Files to Create/Modify
-- **src/mci/core/mcp_manager.py** - MCP server connection and management
-- **src/mci/core/server_runner.py** - Logic to run MCP servers (STDIO/HTTP)
+- **src/mci/core/mcp_server.py** - Create and configure MCP server instances
+- **src/mci/core/tool_converter.py** - Convert MCI Tool objects to MCP tool definitions
 - **pyproject.toml** - Add pytest-asyncio for async tests
 
 ### Classes/Functions
-- `MCPManager` class with async methods:
-  - `async connect_stdio(command: str, args: list[str], env: dict) -> MCPClient`
-  - `async connect_http(url: str, headers: dict) -> MCPClient`
-  - `async list_tools(client: MCPClient) -> list[str]`
-  - `async call_tool(client: MCPClient, name: str, **args) -> Any`
-- `ServerRunner` class with async methods:
-  - `async start_server(config: dict) -> MCPServerInstance`
-  - `async stop_server(instance: MCPServerInstance) -> None`
+- `MCPServerBuilder` class with async methods:
+  - `async create_server(name: str, version: str) -> Server` - Create MCP server instance
+  - `async register_tool(server: Server, mci_tool: Tool) -> None` - Register MCI tool as MCP tool
+  - `async register_all_tools(server: Server, tools: list[Tool]) -> None` - Register multiple tools
+- `MCIToolConverter` class with methods:
+  - `convert_to_mcp_tool(mci_tool: Tool) -> MCPTool` - Convert MCI Tool to MCP format
+  - `convert_input_schema(mci_schema: dict) -> dict` - Convert inputSchema to MCP format
+- `ServerInstance` class:
+  - `start() -> None` - Start the MCP server
+  - `stop() -> None` - Stop the MCP server
+  - `handle_tool_call(name: str, arguments: dict) -> Any` - Delegate to MCI execution
 
 ### Tests
 
 #### Unit Tests
-- `tests/unit/core/test_mcp_manager.py`
-  - `test_connect_stdio()` - Test STDIO connection (mocked)
-  - `test_connect_http()` - Test HTTP connection (mocked)
-  - `test_list_tools()` - Test tool listing
-  - `test_call_tool()` - Test tool execution
-- `tests/unit/core/test_server_runner.py`
-  - `test_start_stdio_server()` - Start server with STDIO
-  - `test_start_http_server()` - Start server with HTTP
-  - `test_stop_server()` - Stop running server
+- `tests/unit/core/test_mcp_server.py`
+  - `test_create_server()` - Create MCP server instance
+  - `test_register_single_tool()` - Register one MCI tool
+  - `test_register_multiple_tools()` - Register multiple tools
+  - `test_server_metadata()` - Verify server name and version
+- `tests/unit/core/test_tool_converter.py`
+  - `test_convert_mci_to_mcp_tool()` - Convert tool definition
+  - `test_convert_input_schema()` - Convert inputSchema format
+  - `test_preserve_tool_description()` - Ensure description is preserved
 
 #### Feature Tests
-- `tests/test_mcp_integration.py` - Test MCP integration with mock server
+- `tests/test_mcp_server_creation.py` - Test full MCP server creation workflow
 
 #### Manual Tests
-- `testsManual/test_mcp_server.py` - Connect to real MCP server, list tools
+- `testsManual/test_mcp_server.py` - Create server, verify it can be queried
 
 ### Success Criteria
-- [ ] Can connect to STDIO MCP servers
-- [ ] Can connect to HTTP MCP servers
-- [ ] Can list tools from MCP servers
-- [ ] Can execute tools on MCP servers
+- [ ] Can create MCP server instances using `mcp` SDK
+- [ ] Can register MCI tools as MCP tools
+- [ ] Tool definitions properly converted to MCP format
+- [ ] Server can handle tool listing requests
 - [ ] Proper async handling
 - [ ] All tests pass
 
@@ -480,12 +576,27 @@ src/mci/core/
 ## Stage 9: CLI Command: `mci run` (STDIO Only)
 
 ### Goal
-Implement the `run` command to launch MCP servers via STDIO.
+Implement the `run` command to launch MCP servers via STDIO that serve MCI tools.
+
+### Implementation Notes
+
+**IMPORTANT: Integration flow for the run command:**
+
+1. **Fetch tools from MCI**: Use MCIClient (from Stage 4) to load tools from MCI schema
+2. **Build MCP tools**: Convert MCI tools to MCP tool format (from Stage 8)
+3. **Create MCP server**: Use the MCP server infrastructure (from Stage 8)
+4. **Handle execution**: When a tool execution is requested via MCP, use MCI's execution logic
+
+The `run` command creates a dynamic MCP server that:
+- Loads MCI tools using MCIClient
+- Converts them to MCP format
+- Serves them via MCP protocol over STDIO
+- Delegates execution back to MCI when tools are called
 
 ### Directories to Create
 ```
 src/mci/core/
-└── dynamic_server.py    # Dynamic MCP server creation
+└── dynamic_server.py    # Dynamic MCP server creation from MCI schema
 ```
 
 ### Files to Create/Modify
@@ -496,9 +607,13 @@ src/mci/core/
 ### Classes/Functions
 - `run_command(file: str, filter: str)` - Click command for `mci run`
 - `DynamicMCPServer` class with async methods:
-  - `async create_from_schema(schema_path: str, filter_spec: str = None) -> Server`
-  - `async register_tools(tools: list[Tool]) -> None`
-  - `async handle_tool_execution(name: str, args: dict) -> ToolResult`
+  - `async create_from_mci_schema(schema_path: str, filter_spec: str = None) -> Server`
+    - Load tools using MCIClient from Stage 4
+    - Convert MCI tools to MCP format using Stage 8 converter
+    - Register tools with MCP server from Stage 8
+  - `async handle_tool_execution(name: str, arguments: dict) -> ToolResult`
+    - Use MCIClient.execute() to run the tool
+    - Return result in MCP format
   - `async start_stdio() -> None` - Start server on STDIO
 - `run_server(schema_path: str, filter_spec: str) -> None` - Main run function
 
@@ -506,9 +621,10 @@ src/mci/core/
 
 #### Unit Tests
 - `tests/unit/core/test_dynamic_server.py`
-  - `test_create_server()` - Create server from schema
-  - `test_register_tools()` - Register MCI tools
-  - `test_handle_execution()` - Handle tool execution requests
+  - `test_create_server_from_schema()` - Create server from MCI schema
+  - `test_load_tools_via_mciclient()` - Verify MCIClient is used to load tools
+  - `test_convert_tools_to_mcp()` - Verify tools are converted to MCP format
+  - `test_handle_execution_uses_mci()` - Verify MCI's execute() is used
 - `tests/unit/cli/test_run.py`
   - `test_run_default_file()` - Run with default mci.json
   - `test_run_custom_file()` - Run with --file option
@@ -518,6 +634,18 @@ src/mci/core/
 - `tests/test_run_command.py` - Test full run command with mock MCP client
 
 #### Manual Tests
+- `testsManual/test_run_stdio.py` - Run actual MCP server, connect with MCP client
+
+### Success Criteria
+- [ ] `uvx mci run` starts MCP server on STDIO
+- [ ] Uses MCIClient to fetch tools from MCI schema
+- [ ] Converts MCI tools to MCP tool format
+- [ ] Server responds to MCP protocol requests (list_tools)
+- [ ] Tool execution requests delegate to MCI's execute()
+- [ ] `uvx mci run --file=custom.mci.json` uses custom file
+- [ ] `uvx mci run --filter=tags:Tag1,Tag2` filters tools correctly
+- [ ] Graceful shutdown on Ctrl+C
+- [ ] All tests pass
 - `testsManual/test_run_stdio.py` - Run actual MCP server, connect with MCP client
 
 ### Success Criteria
