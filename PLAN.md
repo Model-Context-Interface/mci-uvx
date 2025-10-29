@@ -310,7 +310,7 @@ Implement the `list` command to display available tools.
 
 **IMPORTANT: The list command should use the same modules that will be used in the run command.**
 
-- The `list` command is designed to test and preview what the `run` command will return
+- The `list` command is designed to test and preview what tools the `run` command will return
 - Both commands should share the same tool loading and filtering logic
 - This ensures consistency between what `list` shows and what `run` actually provides
 - Use the same MCIClient wrapper and filtering logic that `run` will use
@@ -511,7 +511,7 @@ Set up infrastructure for creating MCP servers (not connecting to them) that can
 
 ### Implementation Notes
 
-**IMPORTANT: This stage is about CREATING MCP servers, not connecting to them.**
+**IMPORTANT: This stage is about CREATING MCP servers.**
 
 - We create an MCP server that will serve tools from MCI schemas
 - The server will expose MCI tools as MCP tools to MCP clients
