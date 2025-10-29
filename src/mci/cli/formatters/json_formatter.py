@@ -6,7 +6,6 @@ with metadata including timestamp, source file, filters, and tool count.
 """
 
 import json
-from pathlib import Path
 
 from mcipy.models import Tool
 

@@ -181,3 +181,7 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# List command output files
+tools_*.json
+tools_*.yaml

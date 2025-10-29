@@ -94,10 +94,10 @@ def list_command(file: str | None, filter: str | None, format: str, verbose: boo
             client = MCIClientWrapper(file)
         except MCIClientError as e:
             console.print(ErrorHandler.format_mci_client_error(e))
-            raise click.Abort()
+            raise click.Abort() from e
         except Exception as e:
             console.print(ErrorHandler.format_generic_error(e))
-            raise click.Abort()
+            raise click.Abort() from e
 
         # Get tools (with or without filter)
         if filter:
@@ -105,7 +105,7 @@ def list_command(file: str | None, filter: str | None, format: str, verbose: boo
                 tools = ToolManager.apply_filter_spec(client, filter)
             except ValueError as e:
                 console.print(f"[red]✗[/red] Invalid filter: {e}", style="red")
-                raise click.Abort()
+                raise click.Abort() from e
         else:
             tools = client.get_tools()
 
@@ -141,7 +141,7 @@ def list_command(file: str | None, filter: str | None, format: str, verbose: boo
         raise
     except MCIClientError as e:
         console.print(ErrorHandler.format_mci_client_error(e))
-        raise click.Abort()
+        raise click.Abort() from e
     except Exception as e:
         console.print(ErrorHandler.format_generic_error(e))
-        raise click.Abort()
+        raise click.Abort() from e

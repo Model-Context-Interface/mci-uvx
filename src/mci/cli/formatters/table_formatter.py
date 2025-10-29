@@ -5,10 +5,10 @@ This module provides formatting for displaying tools in Rich terminal tables
 with support for both basic and verbose output modes.
 """
 
-from rich.console import Console
-from rich.table import Table
-
 from mcipy.models import Tool
+from rich.console import Console
+from rich.markup import escape
+from rich.table import Table
 
 
 class TableFormatter:
@@ -113,8 +113,8 @@ class TableFormatter:
             # Tags
             if tool.tags:
                 tags_str = ", ".join(tool.tags)
-                # Escape brackets for Rich markup
-                output_lines.append(f"├── Tags: \\[{tags_str}]")
+                # Use Rich's escape function to properly escape markup characters
+                output_lines.append(f"├── Tags: {escape(f'[{tags_str}]')}")
 
             # Execution type
             execution_type = tool.execution.type.value if hasattr(tool.execution.type, "value") else str(tool.execution.type)

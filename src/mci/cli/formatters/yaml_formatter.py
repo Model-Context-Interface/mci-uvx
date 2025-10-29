@@ -5,10 +5,8 @@ This module provides formatting for outputting tools to YAML files
 with metadata including timestamp, source file, filters, and tool count.
 """
 
-from pathlib import Path
 
 import yaml
-
 from mcipy.models import Tool
 
 from mci.utils.timestamp import generate_timestamp_filename, get_iso_timestamp

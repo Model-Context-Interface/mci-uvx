@@ -5,7 +5,7 @@ This module provides utilities for generating timestamped filenames
 and ISO 8601 timestamps for use in CLI output files.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 def generate_timestamp_filename(format: str, prefix: str = "tools") -> str:
@@ -27,7 +27,7 @@ def generate_timestamp_filename(format: str, prefix: str = "tools") -> str:
         >>> print(filename)
         tools_20241029_143022.json
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     timestamp = now.strftime("%Y%m%d_%H%M%S")
     return f"{prefix}_{timestamp}.{format}"
 
@@ -46,5 +46,5 @@ def get_iso_timestamp() -> str:
         >>> print(timestamp)
         2024-10-29T14:30:22Z
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return now.strftime("%Y-%m-%dT%H:%M:%SZ")
