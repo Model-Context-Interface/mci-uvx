@@ -252,29 +252,9 @@ def test_filter_without_tags():
         Path(schema_path).unlink()
 
 
-def test_multiple_filters():
-    """Test applying multiple filters."""
-    console.print("\n[bold blue]═══ Test 6: Multiple Filters ═══[/bold blue]\n")
-
-    schema_path = create_sample_schema()
-    try:
-        wrapper = MCIClientWrapper(schema_path)
-
-        filters = ["tags:api,cli", "without-tags:deprecated"]
-        console.print(
-            f"Filter specifications: [yellow]{' → '.join(filters)}[/yellow]\n"
-        )
-
-        tools = ToolManager.apply_multiple_filters(wrapper, filters)
-        display_tools_table(tools, "API/CLI Tools (non-deprecated)")
-
-    finally:
-        Path(schema_path).unlink()
-
-
 def test_error_handling():
     """Test error handling."""
-    console.print("\n[bold blue]═══ Test 7: Error Handling ═══[/bold blue]\n")
+    console.print("\n[bold blue]═══ Test 6: Error Handling ═══[/bold blue]\n")
 
     # Test missing file
     console.print("[bold]Testing missing file error:[/bold]\n")
@@ -299,7 +279,7 @@ def test_error_handling():
 
 def test_with_real_mci_file():
     """Test with the example toolset from assets."""
-    console.print("\n[bold blue]═══ Test 8: Real MCI File (example_toolset) ═══[/bold blue]\n")
+    console.print("\n[bold blue]═══ Test 7: Real MCI File (example_toolset) ═══[/bold blue]\n")
 
     # Try to find the example toolset
     example_path = Path(__file__).parent.parent / "src" / "mci" / "assets" / "example_toolset.mci.json"
@@ -335,7 +315,6 @@ def main():
         test_filter_except()
         test_filter_tags()
         test_filter_without_tags()
-        test_multiple_filters()
         test_error_handling()
         test_with_real_mci_file()
 

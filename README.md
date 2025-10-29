@@ -242,12 +242,6 @@ wrapper = MCIClientWrapper("mci.json")
 api_tools = ToolManager.apply_filter_spec(wrapper, "tags:api,database")
 non_deprecated = ToolManager.apply_filter_spec(wrapper, "without-tags:deprecated")
 selected_tools = ToolManager.apply_filter_spec(wrapper, "only:tool1,tool2,tool3")
-
-# Chain multiple filters
-tools = ToolManager.apply_multiple_filters(
-    wrapper,
-    ["tags:api", "without-tags:deprecated", "except:old_tool"]
-)
 ```
 
 **Supported Filter Types:**

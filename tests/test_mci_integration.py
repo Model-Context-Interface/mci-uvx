@@ -214,29 +214,6 @@ def test_mci_integration_filter_without_tags():
         Path(schema_path).unlink()
 
 
-def test_mci_integration_multiple_filters():
-    """Test applying multiple filters sequentially."""
-    schema = create_comprehensive_schema()
-
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".mci.json", delete=False) as f:
-        json.dump(schema, f)
-        schema_path = f.name
-
-    try:
-        wrapper = MCIClientWrapper(schema_path)
-
-        # Get API or CLI tools, but exclude deprecated
-        tools = ToolManager.apply_multiple_filters(
-            wrapper, ["tags:api,cli", "without-tags:deprecated"]
-        )
-
-        # Should get weather_api (api) and list_files_cli (cli), but not deprecated_tool
-        assert len(tools) == 2
-        assert {t.name for t in tools} == {"weather_api", "list_files_cli"}
-    finally:
-        Path(schema_path).unlink()
-
-
 def test_mci_integration_yaml_support():
     """Test loading YAML schema files."""
     yaml_content = """
@@ -356,28 +333,5 @@ def test_mci_integration_invalid_schema():
     try:
         with pytest.raises(MCIClientError):
             MCIClientWrapper(schema_path)
-    finally:
-        Path(schema_path).unlink()
-
-
-def test_mci_integration_filter_chain():
-    """Test complex filter chains."""
-    schema = create_comprehensive_schema()
-
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".mci.json", delete=False) as f:
-        json.dump(schema, f)
-        schema_path = f.name
-
-    try:
-        wrapper = MCIClientWrapper(schema_path)
-
-        # Chain: Get tools with 'read' tag, then exclude 'weather_api'
-        tools = ToolManager.apply_multiple_filters(
-            wrapper, ["tags:api,cli,file", "except:weather_api,read_config_file"]
-        )
-
-        # Should only get list_files_cli (has cli tag, not excluded)
-        assert len(tools) == 1
-        assert tools[0].name == "list_files_cli"
     finally:
         Path(schema_path).unlink()
