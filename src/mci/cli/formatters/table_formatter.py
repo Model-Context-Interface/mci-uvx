@@ -117,7 +117,11 @@ class TableFormatter:
                 output_lines.append(f"├── Tags: {escape(f'[{tags_str}]')}")
 
             # Execution type
-            execution_type = tool.execution.type.value if hasattr(tool.execution.type, "value") else str(tool.execution.type)
+            execution_type = (
+                tool.execution.type.value
+                if hasattr(tool.execution.type, "value")
+                else str(tool.execution.type)
+            )
             output_lines.append(f"├── Execution: {execution_type}")
 
             # Parameters from inputSchema

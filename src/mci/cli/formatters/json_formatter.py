@@ -6,6 +6,7 @@ with metadata including timestamp, source file, filters, and tool count.
 """
 
 import json
+from typing import Any
 
 from mcipy.models import Tool
 
@@ -52,7 +53,7 @@ class JSONFormatter:
         filename = generate_timestamp_filename("json")
 
         # Build output data structure
-        output_data = {
+        output_data: dict[str, Any] = {
             "timestamp": get_iso_timestamp(),
             "mci_file": mci_file,
             "filters_applied": filters_applied or [],
@@ -62,7 +63,7 @@ class JSONFormatter:
 
         # Format each tool
         for tool in tools:
-            tool_data = {
+            tool_data: dict[str, str | list[str] | dict[str, Any] | bool] = {
                 "name": tool.name,
                 "source": tool.toolset_source or "main",
                 "description": tool.description or "",

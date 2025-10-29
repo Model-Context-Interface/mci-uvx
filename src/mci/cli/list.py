@@ -88,7 +88,7 @@ def list_command(file: str | None, filter: str | None, format: str, verbose: boo
                     style="red",
                 )
                 raise click.Abort()
-        
+
         # Load schema using MCIClientWrapper
         try:
             client = MCIClientWrapper(file)

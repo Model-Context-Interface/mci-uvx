@@ -5,8 +5,10 @@ This module provides formatting for outputting tools to YAML files
 with metadata including timestamp, source file, filters, and tool count.
 """
 
+from typing import Any
 
 import yaml
+
 from mcipy.models import Tool
 
 from mci.utils.timestamp import generate_timestamp_filename, get_iso_timestamp
@@ -52,7 +54,7 @@ class YAMLFormatter:
         filename = generate_timestamp_filename("yaml")
 
         # Build output data structure
-        output_data = {
+        output_data: dict[str, Any] = {
             "timestamp": get_iso_timestamp(),
             "mci_file": mci_file,
             "filters_applied": filters_applied or [],
@@ -62,7 +64,7 @@ class YAMLFormatter:
 
         # Format each tool
         for tool in tools:
-            tool_data = {
+            tool_data: dict[str, str | list[str] | dict[str, Any] | bool] = {
                 "name": tool.name,
                 "source": tool.toolset_source or "main",
                 "description": tool.description or "",
