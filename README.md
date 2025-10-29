@@ -191,13 +191,174 @@ All further development stages build on this foundational structure:
 - **Stage 1**: ✅ Project Setup & Core Dependencies
 - **Stage 2**: ✅ Configuration & File Discovery
 - **Stage 3**: ✅ CLI Command: `mci install`
-- **Stage 4**: MCI-PY Integration & Tool Loading
+- **Stage 4**: ✅ MCI-PY Integration & Tool Loading
 - **Stage 5**: CLI Command: `mci list`
 - **Stage 6**: CLI Command: `mci validate`
 - **Stage 7**: CLI Command: `mci add`
 - **Stage 8**: MCP Server Creation Infrastructure
 - **Stage 9**: CLI Command: `mci run`
 - **Stage 10**: Error Handling, Documentation & Final Polish
+
+* * *
+
+## MCI-PY Integration & Tool Loading
+
+The MCI CLI tool integrates with the **mci-py** library for robust loading and management of MCI tools. All tool loading, filtering, and schema operations are delegated to `MCIClient` from mci-py, ensuring consistency with the upstream adapter and future-proof functionality.
+
+### Key Components
+
+#### MCIClientWrapper
+
+The `MCIClientWrapper` class provides a CLI-friendly interface to `MCIClient` from mci-py:
+
+```python
+from mci.core.mci_client import MCIClientWrapper
+
+# Load MCI schema
+wrapper = MCIClientWrapper("mci.json")
+
+# Get all tools
+tools = wrapper.get_tools()
+for tool in tools:
+    print(f"{tool.name}: {tool.description}")
+
+# Filter tools
+api_tools = wrapper.filter_tags(["api"])
+safe_tools = wrapper.filter_except(["deprecated_tool"])
+specific_tools = wrapper.filter_only(["tool1", "tool2"])
+```
+
+#### Tool Filtering
+
+The `ToolManager` class parses CLI filter specifications and applies filters using MCIClient methods:
+
+```python
+from mci.core.mci_client import MCIClientWrapper
+from mci.core.tool_manager import ToolManager
+
+wrapper = MCIClientWrapper("mci.json")
+
+# Apply filter specifications
+api_tools = ToolManager.apply_filter_spec(wrapper, "tags:api,database")
+non_deprecated = ToolManager.apply_filter_spec(wrapper, "without-tags:deprecated")
+selected_tools = ToolManager.apply_filter_spec(wrapper, "only:tool1,tool2,tool3")
+
+# Chain multiple filters
+tools = ToolManager.apply_multiple_filters(
+    wrapper,
+    ["tags:api", "without-tags:deprecated", "except:old_tool"]
+)
+```
+
+**Supported Filter Types:**
+- `only:tool1,tool2,...` - Include only specified tools by name
+- `except:tool1,tool2,...` - Exclude specified tools by name
+- `tags:tag1,tag2,...` - Include tools with any of these tags (OR logic)
+- `without-tags:tag1,tag2,...` - Exclude tools with any of these tags (OR logic)
+- `toolsets:toolset1,toolset2,...` - Include tools from specified toolsets
+
+### MCIClient Delegation
+
+All tool operations delegate to `MCIClient` from mci-py:
+
+- **Schema parsing**: `MCIClient` validates and loads MCI schemas
+- **Tool loading**: Uses Pydantic models from mci-py for type-safe tool definitions
+- **Filtering**: Leverages built-in methods: `only()`, `without()`, `tags()`, `withoutTags()`, `toolsets()`
+- **Environment variables**: Template substitution via `MCIClient`
+- **Validation**: Schema validation performed by `MCIClient` during initialization
+
+No filtering or validation logic is reimplemented in the CLI. The wrapper focuses on:
+- CLI-specific error handling
+- Filter specification parsing
+- Output formatting for terminal display
+
+### Error Handling
+
+The `ErrorHandler` class formats `MCIClientError` exceptions for CLI-friendly display:
+
+```python
+from mci.core.mci_client import MCIClientWrapper
+from mci.utils.error_handler import ErrorHandler
+from mcipy import MCIClientError
+
+try:
+    wrapper = MCIClientWrapper("nonexistent.mci.json")
+except MCIClientError as e:
+    # Format error for CLI display
+    formatted_error = ErrorHandler.format_mci_client_error(e)
+    print(formatted_error)
+```
+
+Error messages include:
+- Clear error descriptions
+- Helpful suggestions for resolution
+- Visual indicators (emoji) for better readability
+
+### Environment Variable Support
+
+```python
+from mci.core.mci_client import MCIClientWrapper
+
+# Load with environment variables for template substitution
+env_vars = {
+    "API_KEY": "your-api-key",
+    "BASE_URL": "https://api.example.com",
+    "PROJECT_ROOT": "/path/to/project"
+}
+
+wrapper = MCIClientWrapper("mci.json", env_vars=env_vars)
+tools = wrapper.get_tools()
+```
+
+Environment variables are used in tool definitions:
+```json
+{
+  "name": "api_tool",
+  "execution": {
+    "type": "http",
+    "url": "{{env.BASE_URL}}/endpoint",
+    "headers": {
+      "Authorization": "Bearer {{env.API_KEY}}"
+    }
+  }
+}
+```
+
+### Using Pydantic Models
+
+All tool objects are Pydantic models from mci-py:
+
+```python
+from mci.core.mci_client import MCIClientWrapper
+
+wrapper = MCIClientWrapper("mci.json")
+tools = wrapper.get_tools()
+
+for tool in tools:
+    # Access Pydantic model properties
+    print(f"Name: {tool.name}")
+    print(f"Description: {tool.description}")
+    print(f"Tags: {tool.tags}")
+    print(f"Input Schema: {tool.inputSchema}")
+    print(f"Execution Type: {tool.execution.type}")
+```
+
+### YAML Support
+
+Both JSON and YAML schema files are supported:
+
+```python
+from mci.core.mci_client import MCIClientWrapper
+
+# Load JSON schema
+json_wrapper = MCIClientWrapper("mci.json")
+
+# Load YAML schema
+yaml_wrapper = MCIClientWrapper("mci.yaml")
+
+# Both work identically
+tools = json_wrapper.get_tools()
+```
 
 * * *
 
