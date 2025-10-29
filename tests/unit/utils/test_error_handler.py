@@ -23,7 +23,11 @@ def test_format_file_not_found_error():
 
 def test_format_unsupported_file_extension_error():
     """Test formatting unsupported file extension error."""
-    error = MCIClientError("Failed to load schema from file.txt: Unsupported file extension '.txt'. Supported extensions: .json, .yaml, .yml")
+    msg = (
+        "Failed to load schema from file.txt: Unsupported file extension '.txt'. "
+        "Supported extensions: .json, .yaml, .yml"
+    )
+    error = MCIClientError(msg)
     
     formatted = ErrorHandler.format_mci_client_error(error)
     
