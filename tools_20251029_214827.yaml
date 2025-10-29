@@ -1,0 +1,18 @@
+timestamp: '2025-10-29T21:48:27Z'
+mci_file: /home/runner/work/mci-uvx/mci-uvx/mci.json
+filters_applied: []
+total: 1
+tools:
+- name: echo_test
+  source: main
+  description: Simple echo test tool
+  tags: []
+  execution_type: text
+  inputSchema:
+    type: object
+    properties:
+      message:
+        type: string
+        description: Message to echo
+    required:
+    - message

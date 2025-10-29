@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "1.0",
+  "metadata": {
+    "name": "Test Tools",
+    "description": "Test configuration with multiple tools"
+  },
+  "tools": [
+    {
+      "name": "get_weather",
+      "description": "Get current weather for a location",
+      "tags": ["api", "data", "weather"],
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "string",
+            "description": "Location name"
+          },
+          "units": {
+            "type": "string",
+            "description": "Temperature units (optional)"
+          }
+        },
+        "required": ["location"]
+      },
+      "execution": {
+        "type": "text",
+        "text": "Weather for {{props.location}}"
+      }
+    },
+    {
+      "name": "get_forecast",
+      "description": "Get weather forecast",
+      "tags": ["api", "data", "weather"],
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "string"
+          },
+          "days": {
+            "type": "number"
+          }
+        },
+        "required": ["location"]
+      },
+      "execution": {
+        "type": "text",
+        "text": "Forecast for {{props.location}}"
+      }
+    },
+    {
+      "name": "analyze_sentiment",
+      "description": "Analyze text sentiment",
+      "tags": ["data", "ml", "text"],
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          }
+        },
+        "required": ["text"]
+      },
+      "execution": {
+        "type": "text",
+        "text": "Sentiment: positive"
+      }
+    },
+    {
+      "name": "summarize_data",
+      "description": "Summarize dataset",
+      "tags": ["data"],
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "dataset": {
+            "type": "string"
+          }
+        },
+        "required": ["dataset"]
+      },
+      "execution": {
+        "type": "text",
+        "text": "Summary of {{props.dataset}}"
+      }
+    }
+  ],
+  "toolsets": [],
+  "mcp_servers": {}
+}

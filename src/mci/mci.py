@@ -8,6 +8,7 @@ schemas and dynamically running MCP servers using defined MCI toolsets.
 import click
 
 from mci.cli.install import install
+from mci.cli.list import list_command
 
 
 @click.group()
@@ -23,6 +24,7 @@ def main():
 
 # Register commands
 main.add_command(install)
+main.add_command(list_command, name="list")
 
 
 if __name__ == "__main__":
