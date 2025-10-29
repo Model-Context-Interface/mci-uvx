@@ -136,7 +136,8 @@ def test_install_command_rerun_idempotent():
         config = MCIConfig()
         finder = MCIFileFinder()
         found_file = finder.find_mci_file(".")
-        is_valid, error = config.validate_schema(found_file)
+        assert found_file is not None
+        is_valid, _ = config.validate_schema(found_file)
         assert is_valid is True
 
 
