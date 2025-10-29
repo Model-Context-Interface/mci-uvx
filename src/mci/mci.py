@@ -7,6 +7,8 @@ schemas and dynamically running MCP servers using defined MCI toolsets.
 
 import click
 
+from mci.cli.install import install
+
 
 @click.group()
 @click.version_option()
@@ -17,6 +19,10 @@ def main():
     Use 'mci COMMAND --help' for more information on a specific command.
     """
     pass
+
+
+# Register commands
+main.add_command(install)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,23 @@
+schemaVersion: '1.0'
+metadata:
+  name: Example Toolset
+  description: Example MCI toolset with CLI tool
+tools:
+  - name: list_files
+    description: List files in a directory
+    inputSchema:
+      type: object
+      properties:
+        directory:
+          type: string
+          description: Directory to list files from
+      required: [directory]
+    execution:
+      type: cli
+      command: ls
+      args:
+        - '-la'
+        - '{{props.directory}}'
+    enableAnyPaths: false
+    directoryAllowList:
+      - '{{env.PROJECT_ROOT}}'
