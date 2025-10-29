@@ -38,6 +38,11 @@ classifiers = [
 # ---- Main dependencies ----
 
 dependencies = [
+    "click>=8.1.0",
+    "rich>=14.0.0",
+    "pyyaml>=6.0.0",
+    "mci-py>=0.1.0",
+    "mcp>=1.0.0",
 ]
 
 

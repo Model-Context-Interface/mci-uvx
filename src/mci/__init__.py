@@ -1,5 +1,10 @@
-__all__ = (  # noqa: F405
-    # TODO: Add all public symbols here.
-)
+"""
+MCI CLI Package
 
-from .mci import *  # noqa: F403
+This package provides a command-line interface for managing Model Context Interface (MCI)
+schemas and dynamically running MCP servers.
+"""
+
+from .mci import main
+
+__all__ = ("main",)
