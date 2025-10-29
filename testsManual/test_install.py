@@ -13,7 +13,6 @@ Requirements:
     - Will create a temporary directory for testing
 """
 
-import shutil
 import subprocess
 import sys
 import tempfile

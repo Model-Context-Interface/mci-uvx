@@ -16,17 +16,22 @@
             "description": "Directory to list files from"
           }
         },
-        "required": ["directory"]
+        "required": [
+          "directory"
+        ]
       },
       "execution": {
         "type": "cli",
         "command": "ls",
-        "args": ["-la", "{{props.directory}}"]
+        "args": [
+          "-la",
+          "{{props.directory}}"
+        ]
       },
       "enableAnyPaths": false,
-      "directoryAllowList": ["{{env.PROJECT_ROOT}}"]
+      "directoryAllowList": [
+        "{{env.PROJECT_ROOT}}"
+      ]
     }
-  ],
-  "toolsets": [],
-  "mcp_servers": {}
+  ]
 }
