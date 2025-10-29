@@ -89,16 +89,26 @@ def create_mci_directory() -> None:
         click.echo("✓ Created ./mci/.gitignore")
 
 
-def create_example_toolset() -> None:
+def create_example_toolset(format: str = "json") -> None:
     """
     Create the example toolset file in ./mci/ directory.
-    """
-    dest_path = Path.cwd() / "mci" / "example_toolset.mci.json"
 
-    if copy_asset("example_toolset.mci.json", dest_path):
-        click.echo("✓ Created ./mci/example_toolset.mci.json")
+    Args:
+        format: File format, either "json" or "yaml"
+    """
+    if format == "yaml":
+        filename = "example_toolset.mci.yaml"
+        asset_name = "example_toolset.mci.yaml"
     else:
-        click.echo("⚠ ./mci/example_toolset.mci.json already exists, skipping")
+        filename = "example_toolset.mci.json"
+        asset_name = "example_toolset.mci.json"
+
+    dest_path = Path.cwd() / "mci" / filename
+
+    if copy_asset(asset_name, dest_path):
+        click.echo(f"✓ Created ./mci/{filename}")
+    else:
+        click.echo(f"⚠ ./mci/{filename} already exists, skipping")
 
 
 @click.command()
@@ -117,14 +127,16 @@ def install(yaml: bool):
     click.echo("Initializing MCI project...")
     click.echo()
 
+    format = "yaml" if yaml else "json"
+
     # Create main configuration file
-    create_mci_file(format="yaml" if yaml else "json")
+    create_mci_file(format=format)
 
     # Create ./mci directory and .gitignore
     create_mci_directory()
 
     # Create example toolset
-    create_example_toolset()
+    create_example_toolset(format=format)
 
     click.echo()
     click.echo("✓ MCI project initialized successfully!")

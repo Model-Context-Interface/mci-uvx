@@ -117,6 +117,35 @@ def test_install_command_example_toolset_validation():
         assert tools[0].description == "List files in a directory"
 
 
+def test_install_command_example_toolset_yaml_validation():
+    """Test that the YAML example toolset file is valid."""
+    runner = CliRunner()
+
+    with runner.isolated_filesystem():
+        # Run install command with --yaml
+        result = runner.invoke(main, ["install", "--yaml"])
+        assert result.exit_code == 0
+
+        # Verify YAML example toolset file
+        example_file = Path("mci/example_toolset.mci.yaml")
+        assert example_file.exists()
+
+        # Verify it can be loaded and validated
+        config = MCIConfig()
+        is_valid, error = config.validate_schema(str(example_file))
+        assert is_valid is True, f"Example toolset validation failed: {error}"
+
+        # Load the client
+        client = config.load(str(example_file))
+        assert client is not None
+
+        # Verify tools
+        tools = client.tools()
+        assert len(tools) == 1
+        assert tools[0].name == "list_files"
+        assert tools[0].description == "List files in a directory"
+
+
 def test_install_command_rerun_idempotent():
     """Test that running install twice doesn't cause errors."""
     runner = CliRunner()

@@ -211,6 +211,26 @@ def test_create_example_toolset_already_exists(monkeypatch, capsys):
         assert "already exists" in captured.out
 
 
+def test_create_example_toolset_yaml(monkeypatch):
+    """Test creating example_toolset.mci.yaml file."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        monkeypatch.chdir(tmpdir)
+
+        # Create mci directory first
+        mci_dir = Path(tmpdir) / "mci"
+        mci_dir.mkdir()
+
+        create_example_toolset(format="yaml")
+
+        toolset_file = mci_dir / "example_toolset.mci.yaml"
+        assert toolset_file.exists()
+
+        content = toolset_file.read_text()
+        assert "schemaVersion" in content
+        assert "list_files" in content
+        assert "ls" in content
+
+
 def test_install_command_json():
     """Test the install command with JSON format (default)."""
     runner = CliRunner()
@@ -241,10 +261,15 @@ def test_install_command_yaml():
 
         assert result.exit_code == 0
         assert "Created mci.yaml" in result.output
+        assert "Created ./mci/example_toolset.mci.yaml" in result.output
 
         # Verify YAML file exists
         assert Path("mci.yaml").exists()
         assert not Path("mci.json").exists()
+
+        # Verify YAML example toolset exists
+        assert Path("mci/example_toolset.mci.yaml").exists()
+        assert not Path("mci/example_toolset.mci.json").exists()
 
 
 def test_install_command_existing_files():

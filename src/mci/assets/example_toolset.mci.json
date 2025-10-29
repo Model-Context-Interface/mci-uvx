@@ -33,5 +33,7 @@
         "{{env.PROJECT_ROOT}}"
       ]
     }
-  ]
+  ],
+  "toolsets": [],
+  "mcp_servers": {}
 }
