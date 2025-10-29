@@ -87,7 +87,28 @@ uvx mci install --yaml
       "name": "Example Project",
       "description": "Example MCI configuration"
     },
-    "tools": [],
+    "tools": [
+      {
+        "name": "echo_test",
+        "description": "Simple echo test tool",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "message": {
+              "type": "string",
+              "description": "Message to echo"
+            }
+          },
+          "required": [
+            "message"
+          ]
+        },
+        "execution": {
+          "type": "text",
+          "text": "Echo: {{props.message}}"
+        }
+      }
+    ],
     "toolsets": [],
     "mcp_servers": {}
   }
