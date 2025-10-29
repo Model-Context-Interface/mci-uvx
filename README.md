@@ -42,12 +42,155 @@ uv run mci --help
 uv run mci --version
 ```
 
+## Bootstrap a Project with `mci install`
+
+The `mci install` command initializes a new MCI project with starter configuration files and directory structure.
+
+### Basic Usage
+
+```bash
+# Initialize a new MCI project with JSON configuration (default)
+uv run mci install
+
+# Initialize with YAML configuration
+uv run mci install --yaml
+```
+
+### What Gets Created
+
+Running `mci install` creates the following files and directories:
+
+```
+project-root/
+├── mci.json (or mci.yaml)         # Main MCI configuration file
+└── mci/                           # MCI library directory
+    ├── .gitignore                 # Git ignore file (includes mcp/)
+    └── example_toolset.mci.json   # Example toolset with CLI tool
+```
+
+#### Main Configuration File (`mci.json`)
+
+The default configuration includes an example echo tool:
+
+```json
+{
+  "schemaVersion": "1.0",
+  "metadata": {
+    "name": "Example Project",
+    "description": "Example MCI configuration"
+  },
+  "tools": [
+    {
+      "name": "echo_test",
+      "description": "Simple echo test tool",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Message to echo"
+          }
+        },
+        "required": ["message"]
+      },
+      "execution": {
+        "type": "text",
+        "text": "Echo: {{props.message}}"
+      }
+    }
+  ],
+  "toolsets": [],
+  "mcp_servers": {}
+}
+```
+
+#### Example Toolset (`mci/example_toolset.mci.json`)
+
+The example toolset includes a CLI tool for listing directory contents:
+
+```json
+{
+  "schemaVersion": "1.0",
+  "metadata": {
+    "name": "Example Toolset",
+    "description": "Example MCI toolset with CLI tool"
+  },
+  "tools": [
+    {
+      "name": "list_files",
+      "description": "List files in a directory",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "directory": {
+            "type": "string",
+            "description": "Directory to list files from"
+          }
+        },
+        "required": ["directory"]
+      },
+      "execution": {
+        "type": "cli",
+        "command": "ls",
+        "args": ["-la", "{{props.directory}}"]
+      },
+      "enableAnyPaths": false,
+      "directoryAllowList": ["{{env.PROJECT_ROOT}}"]
+    }
+  ],
+  "toolsets": [],
+  "mcp_servers": {}
+}
+```
+
+### Existing Files Handling
+
+The install command is idempotent and handles existing files gracefully:
+
+- **Existing configuration file**: Skips creation and displays a warning
+- **Existing `.gitignore`**: Updates if `mcp/` entry is missing, otherwise skips
+- **Existing example toolset**: Skips creation and displays a warning
+
+No files are overwritten by default, ensuring safe re-runs.
+
+### Next Steps After Installation
+
+After running `mci install`, you can:
+
+1. **Review the configuration**: Edit `mci.json` or `mci.yaml` to customize your tools
+2. **Validate your setup**: Run `mci validate` (when implemented) to check your configuration
+3. **List available tools**: Run `mci list` (when implemented) to see all defined tools
+4. **Initialize MCIClient**: Use the configuration programmatically:
+
+```python
+from mcipy import MCIClient
+
+# Load the generated configuration
+client = MCIClient(schema_file_path="mci.json")
+
+# List available tools
+tools = client.tools()
+for tool in tools:
+    print(f"{tool.name}: {tool.description}")
+```
+
+### `.gitignore` Configuration
+
+The `./mci/.gitignore` file is automatically created or updated to include:
+
+```
+mcp/
+```
+
+This prevents the `./mci/mcp/` directory (used for MCP server storage) from being committed to version control.
+
+
 ### Development Foundation
 
 All further development stages build on this foundational structure:
 - **Stage 1**: ✅ Project Setup & Core Dependencies
 - **Stage 2**: ✅ Configuration & File Discovery
-- **Stage 3**: CLI Command: `mci install`
+- **Stage 3**: ✅ CLI Command: `mci install`
 - **Stage 4**: MCI-PY Integration & Tool Loading
 - **Stage 5**: CLI Command: `mci list`
 - **Stage 6**: CLI Command: `mci validate`
