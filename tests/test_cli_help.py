@@ -23,14 +23,12 @@ def test_cli_help_output():
 
 
 def test_cli_help_flag_variations():
-    """Test that help flag variations work (-h, --help)."""
+    """Test that the --help flag works (Click doesn't support -h by default)."""
     runner = CliRunner()
 
     # Test --help
     result_help = runner.invoke(main, ["--help"])
     assert result_help.exit_code == 0
-
-    # Both should produce output
     assert len(result_help.output) > 0
 
 
