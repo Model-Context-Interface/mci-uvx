@@ -184,6 +184,163 @@ mcp/
 
 This prevents the `./mci/mcp/` directory (used for MCP server storage) from being committed to version control.
 
+* * *
+
+## List Available Tools with `mci list`
+
+The `mci list` command displays all available tools from your MCI configuration. It provides a preview of the tool context that would be available when running MCP servers, with support for filtering, multiple output formats, and verbose mode.
+
+### Basic Usage
+
+```bash
+# List all tools in table format (default)
+uv run mci list
+
+# List tools from a specific configuration file
+uv run mci list --file custom.mci.json
+
+# List with verbose output showing tags and parameters
+uv run mci list --verbose
+```
+
+### Output Formats
+
+The `list` command supports three output formats:
+
+#### Table Format (Default)
+
+Displays tools in a beautiful Rich terminal table:
+
+```bash
+uv run mci list
+```
+
+Output:
+```
+🧩 Available Tools (3)
+┏━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ Name        ┃ Source ┃ Description              ┃
+┡━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━┩
+│ get_weather │ main   │ Get current weather      │
+│ analyze     │ main   │ Analyze data             │
+│ send_email  │ custom │ Send email notifications │
+└─────────────┴────────┴──────────────────────────┘
+```
+
+#### JSON Format
+
+Export tools to a timestamped JSON file:
+
+```bash
+uv run mci list --format json
+```
+
+Creates a file like `tools_20241029_143022.json` with structure:
+
+```json
+{
+  "timestamp": "2024-10-29T14:30:22Z",
+  "mci_file": "/path/to/mci.json",
+  "filters_applied": [],
+  "total": 3,
+  "tools": [
+    {
+      "name": "get_weather",
+      "source": "main",
+      "description": "Get current weather"
+    }
+  ]
+}
+```
+
+#### YAML Format
+
+Export tools to a timestamped YAML file:
+
+```bash
+uv run mci list --format yaml
+```
+
+Creates a file like `tools_20241029_143022.yaml`.
+
+### Filtering Tools
+
+The `list` command uses the same filtering logic as the `run` command, ensuring consistency between what is listed and what will be available when running MCP servers.
+
+#### Filter by Tags
+
+Include tools with specific tags (OR logic):
+
+```bash
+# Show only tools tagged with 'api' OR 'database'
+uv run mci list --filter tags:api,database
+```
+
+#### Filter by Tool Names
+
+Include or exclude specific tools by name:
+
+```bash
+# Include only specific tools
+uv run mci list --filter only:get_weather,analyze
+
+# Exclude specific tools
+uv run mci list --filter except:deprecated_tool
+```
+
+#### Filter by Toolsets
+
+Include tools from specific toolsets:
+
+```bash
+uv run mci list --filter toolsets:custom,external
+```
+
+### Verbose Mode
+
+Verbose mode shows additional tool metadata including tags, parameters, and execution type:
+
+```bash
+uv run mci list --verbose
+```
+
+Output:
+```
+🧩 Available Tools (2):
+
+get_weather (main)
+├── Description: Get current weather for a location
+├── Tags: [api, data, weather]
+├── Execution: text
+└── Parameters: location (string), units (string) (optional)
+
+analyze (main)
+├── Description: Analyze data
+├── Tags: [data, ml]
+├── Execution: cli
+└── Parameters: dataset (string), model (string) (optional)
+```
+
+### Combining Options
+
+You can combine filtering, output format, and verbose mode:
+
+```bash
+# Export filtered tools to JSON with verbose metadata
+uv run mci list --filter tags:api --format json --verbose
+
+# List only production tools in verbose table format
+uv run mci list --filter tags:production --verbose
+```
+
+### Use Cases
+
+- **Preview Tools**: See what tools are available before running an MCP server
+- **Debugging**: Verify tool loading and filtering logic
+- **Documentation**: Export tool lists for documentation or sharing
+- **Validation**: Check that toolsets are loaded correctly
+- **Filtering**: Test filter specifications before using them with `mci run`
+
 
 ### Development Foundation
 
@@ -192,7 +349,7 @@ All further development stages build on this foundational structure:
 - **Stage 2**: ✅ Configuration & File Discovery
 - **Stage 3**: ✅ CLI Command: `mci install`
 - **Stage 4**: ✅ MCI-PY Integration & Tool Loading
-- **Stage 5**: CLI Command: `mci list`
+- **Stage 5**: ✅ CLI Command: `mci list`
 - **Stage 6**: CLI Command: `mci validate`
 - **Stage 7**: CLI Command: `mci add`
 - **Stage 8**: MCP Server Creation Infrastructure

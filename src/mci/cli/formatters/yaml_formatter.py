@@ -8,7 +8,6 @@ with metadata including timestamp, source file, filters, and tool count.
 from typing import Any
 
 import yaml
-
 from mcipy.models import Tool
 
 from mci.utils.timestamp import generate_timestamp_filename, get_iso_timestamp

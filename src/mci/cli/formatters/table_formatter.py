@@ -113,7 +113,7 @@ class TableFormatter:
             # Tags
             if tool.tags:
                 tags_str = ", ".join(tool.tags)
-                # Use Rich's escape function to properly escape markup characters
+                # Escape the brackets and content to prevent Rich markup interpretation
                 output_lines.append(f"├── Tags: {escape(f'[{tags_str}]')}")
 
             # Execution type
