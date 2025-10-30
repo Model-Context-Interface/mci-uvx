@@ -6,7 +6,6 @@ with support for both basic and verbose output modes.
 """
 
 from mcipy.models import Tool
-from rich.console import Console
 from rich.markup import escape
 from rich.table import Table
 
