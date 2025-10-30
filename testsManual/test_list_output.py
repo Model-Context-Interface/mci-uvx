@@ -9,7 +9,6 @@ Run this script with:
 """
 
 import json
-import os
 import subprocess
 import tempfile
 from pathlib import Path

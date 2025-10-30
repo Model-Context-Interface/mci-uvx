@@ -6,7 +6,6 @@ filtering, formatting, and output generation.
 """
 
 import json
-import os
 import tempfile
 from pathlib import Path
 

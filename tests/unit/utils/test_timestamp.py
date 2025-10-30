@@ -5,6 +5,7 @@ Tests timestamp generation functions for file output.
 """
 
 import re
+import time
 
 from mci.utils.timestamp import generate_timestamp_filename, get_iso_timestamp
 
@@ -96,8 +97,6 @@ def test_get_iso_timestamp_consistent_format():
 
 def test_timestamp_filenames_are_unique():
     """Test that generated filenames include timestamps that differ across calls."""
-    import time
-
     filename1 = generate_timestamp_filename("json")
     time.sleep(0.001)  # Small delay to ensure different timestamps
     filename2 = generate_timestamp_filename("json")
