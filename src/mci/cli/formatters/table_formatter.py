@@ -21,7 +21,7 @@ class TableFormatter:
     """
 
     @staticmethod
-    def format(tools: list[Tool], verbose: bool = False) -> str:
+    def format(tools: list[Tool], verbose: bool = False) -> Table | list[str]:
         """
         Format tools as a Rich table.
 
@@ -30,7 +30,7 @@ class TableFormatter:
             verbose: Whether to show verbose output with additional metadata
 
         Returns:
-            Formatted table output as a string
+            Rich Table object (basic mode) or list of Rich markup strings (verbose mode)
 
         Example:
             >>> formatter = TableFormatter()
@@ -43,7 +43,7 @@ class TableFormatter:
             return TableFormatter.format_basic(tools)
 
     @staticmethod
-    def format_basic(tools: list[Tool]) -> str:
+    def format_basic(tools: list[Tool]) -> Table:
         """
         Format tools in basic table mode.
 
@@ -53,10 +53,8 @@ class TableFormatter:
             tools: List of Tool objects to format
 
         Returns:
-            Formatted basic table output as a string
+            Rich Table object ready for rendering
         """
-        console = Console()
-
         # Create table
         table = Table(
             title=f"🧩 Available Tools ({len(tools)})",
@@ -76,14 +74,10 @@ class TableFormatter:
 
             table.add_row(name, source, description)
 
-        # Render to string
-        with console.capture() as capture:
-            console.print(table)
-
-        return capture.get()
+        return table
 
     @staticmethod
-    def format_verbose(tools: list[Tool]) -> str:
+    def format_verbose(tools: list[Tool]) -> list[str]:
         """
         Format tools in verbose mode with detailed information.
 
@@ -94,9 +88,8 @@ class TableFormatter:
             tools: List of Tool objects to format
 
         Returns:
-            Formatted verbose output as a string
+            List of formatted output lines with Rich markup
         """
-        console = Console()
         output_lines: list[str] = []
 
         output_lines.append(f"🧩 Available Tools ({len(tools)}):\n")
@@ -143,9 +136,4 @@ class TableFormatter:
 
             output_lines.append("")  # Empty line between tools
 
-        # Render to string with Rich formatting
-        with console.capture() as capture:
-            for line in output_lines:
-                console.print(line)
-
-        return capture.get()
+        return output_lines

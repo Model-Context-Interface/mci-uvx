@@ -113,7 +113,13 @@ def list_command(file: str | None, filter: str | None, format: str, verbose: boo
         if format == "table":
             # Display table to console
             output = TableFormatter.format(tools, verbose=verbose)
-            console.print(output)
+            if isinstance(output, list):
+                # Verbose mode returns list of Rich markup strings
+                for line in output:
+                    console.print(line)
+            else:
+                # Basic mode returns a Table object
+                console.print(output)
 
         elif format == "json":
             # Write to JSON file

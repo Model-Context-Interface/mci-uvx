@@ -5,6 +5,8 @@ Tests the Rich table formatting for both basic and verbose output modes.
 """
 
 from mcipy.models import Tool
+from rich.console import Console
+from rich.table import Table
 
 from mci.cli.formatters.table_formatter import TableFormatter
 
@@ -26,7 +28,16 @@ def test_basic_table():
         ),
     ]
 
-    output = TableFormatter.format_basic(tools)
+    table = TableFormatter.format_basic(tools)
+
+    # Verify it returns a Table object
+    assert isinstance(table, Table)
+    
+    # Render table to string to check contents
+    console = Console()
+    with console.capture() as capture:
+        console.print(table)
+    output = capture.get()
 
     # Check that output contains expected elements
     assert "Available Tools (2)" in output
@@ -41,7 +52,16 @@ def test_basic_table_empty():
     """Test basic table with empty tools list."""
     tools = []
 
-    output = TableFormatter.format_basic(tools)
+    table = TableFormatter.format_basic(tools)
+
+    # Verify it returns a Table object
+    assert isinstance(table, Table)
+    
+    # Render table to string to check contents
+    console = Console()
+    with console.capture() as capture:
+        console.print(table)
+    output = capture.get()
 
     assert "Available Tools (0)" in output
 
@@ -55,7 +75,16 @@ def test_basic_table_with_toolset_source():
         toolset_source="custom-toolset",
     )
 
-    output = TableFormatter.format_basic([tool])
+    table = TableFormatter.format_basic([tool])
+
+    # Verify it returns a Table object
+    assert isinstance(table, Table)
+    
+    # Render table to string to check contents
+    console = Console()
+    with console.capture() as capture:
+        console.print(table)
+    output = capture.get()
 
     assert "sourced_tool" in output
     assert "custom-toolset" in output
@@ -80,7 +109,14 @@ def test_verbose_table():
         )
     ]
 
-    output = TableFormatter.format_verbose(tools)
+    output_lines = TableFormatter.format_verbose(tools)
+
+    # Verify it returns a list of strings
+    assert isinstance(output_lines, list)
+    assert all(isinstance(line, str) for line in output_lines)
+    
+    # Join lines to check contents
+    output = "\n".join(output_lines)
 
     # Check all expected elements are present
     assert "Available Tools (1)" in output
@@ -100,7 +136,13 @@ def test_verbose_table_no_parameters():
         execution={"type": "text", "text": "output"},
     )
 
-    output = TableFormatter.format_verbose([tool])
+    output_lines = TableFormatter.format_verbose([tool])
+
+    # Verify it returns a list of strings
+    assert isinstance(output_lines, list)
+    
+    # Join lines to check contents
+    output = "\n".join(output_lines)
 
     assert "simple_tool" in output
     assert "Parameters: none" in output
@@ -114,7 +156,13 @@ def test_verbose_table_no_tags():
         execution={"type": "text", "text": "output"},
     )
 
-    output = TableFormatter.format_verbose([tool])
+    output_lines = TableFormatter.format_verbose([tool])
+
+    # Verify it returns a list of strings
+    assert isinstance(output_lines, list)
+    
+    # Join lines to check contents
+    output = "\n".join(output_lines)
 
     assert "untagged_tool" in output
     # Tags line should not appear if there are no tags
@@ -132,12 +180,19 @@ def test_format_delegates_to_basic_or_verbose():
 
     # Test basic mode
     basic_output = TableFormatter.format([tool], verbose=False)
-    assert "test" in basic_output
+    assert isinstance(basic_output, Table)
+    console = Console()
+    with console.capture() as capture:
+        console.print(basic_output)
+    basic_str = capture.get()
+    assert "test" in basic_str
 
     # Test verbose mode
     verbose_output = TableFormatter.format([tool], verbose=True)
-    assert "test" in verbose_output
-    assert "test" in verbose_output  # Tags should appear in verbose
+    assert isinstance(verbose_output, list)
+    verbose_str = "\n".join(verbose_output)
+    assert "test" in verbose_str
+    assert "[test]" in verbose_str  # Tags should appear in verbose
 
 
 def test_verbose_table_with_cli_execution():
@@ -148,7 +203,13 @@ def test_verbose_table_with_cli_execution():
         execution={"type": "cli", "command": "ls"},
     )
 
-    output = TableFormatter.format_verbose([tool])
+    output_lines = TableFormatter.format_verbose([tool])
+
+    # Verify it returns a list of strings
+    assert isinstance(output_lines, list)
+    
+    # Join lines to check contents
+    output = "\n".join(output_lines)
 
     assert "cli_tool" in output
     assert "cli" in output
@@ -171,7 +232,13 @@ def test_verbose_table_multiple_tools():
         ),
     ]
 
-    output = TableFormatter.format_verbose(tools)
+    output_lines = TableFormatter.format_verbose(tools)
+
+    # Verify it returns a list of strings
+    assert isinstance(output_lines, list)
+    
+    # Join lines to check contents
+    output = "\n".join(output_lines)
 
     assert "Available Tools (2)" in output
     assert "tool1" in output
