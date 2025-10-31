@@ -59,7 +59,6 @@ def test_run_default_file(runner, basic_schema):
     try:
         # Mock run_server to avoid actually starting the server
         with patch("mci.cli.run.run_server", new_callable=AsyncMock) as mock_run_server:
-            schema_dir = Path(schema_path).parent
             # Copy schema to isolated filesystem as mci.json
             with runner.isolated_filesystem():
                 # Create mci.json in current directory
@@ -86,7 +85,7 @@ def test_run_custom_file(runner, basic_schema):
 
     try:
         with patch("mci.cli.run.run_server", new_callable=AsyncMock) as mock_run_server:
-            result = runner.invoke(run, ["--file", schema_path])
+            runner.invoke(run, ["--file", schema_path])
 
             # Verify run_server was called with correct file
             assert mock_run_server.called
@@ -109,7 +108,7 @@ def test_run_with_filter(runner, basic_schema):
     try:
         with patch("mci.cli.run.run_server", new_callable=AsyncMock) as mock_run_server:
             result = runner.invoke(run, ["--file", schema_path, "--filter", "tags:api"])
-
+            assert result.exit_code == 0
             # Verify run_server was called with filter
             assert mock_run_server.called
             call_args = mock_run_server.call_args
@@ -125,7 +124,7 @@ def test_run_with_only_filter(runner, basic_schema):
 
     try:
         with patch("mci.cli.run.run_server", new_callable=AsyncMock) as mock_run_server:
-            result = runner.invoke(run, ["--file", schema_path, "--filter", "only:tool1,tool2"])
+            runner.invoke(run, ["--file", schema_path, "--filter", "only:tool1,tool2"])
 
             assert mock_run_server.called
             call_args = mock_run_server.call_args
@@ -142,7 +141,7 @@ def test_run_with_except_filter(runner, basic_schema):
     try:
         with patch("mci.cli.run.run_server", new_callable=AsyncMock) as mock_run_server:
             result = runner.invoke(run, ["--file", schema_path, "--filter", "except:tool3"])
-
+            assert result.exit_code == 0
             assert mock_run_server.called
             call_args = mock_run_server.call_args
             assert call_args[0][1] == "except:tool3"
@@ -158,7 +157,7 @@ def test_run_with_toolsets_filter(runner, basic_schema):
     try:
         with patch("mci.cli.run.run_server", new_callable=AsyncMock) as mock_run_server:
             result = runner.invoke(run, ["--file", schema_path, "--filter", "toolsets:weather"])
-
+            assert result.exit_code == 0
             assert mock_run_server.called
             call_args = mock_run_server.call_args
             assert call_args[0][1] == "toolsets:weather"
@@ -270,7 +269,7 @@ def test_run_passes_environment_variables(runner, basic_schema):
 
     try:
         with patch("mci.cli.run.run_server", new_callable=AsyncMock) as mock_run_server:
-            result = runner.invoke(run, ["--file", schema_path])
+            runner.invoke(run, ["--file", schema_path])
 
             # Verify environment variables were passed
             assert mock_run_server.called

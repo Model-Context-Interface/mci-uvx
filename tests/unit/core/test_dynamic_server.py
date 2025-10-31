@@ -10,9 +10,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from mcipy import MCIClient
-
-from mci.core.dynamic_server import DynamicMCPServer, run_server
+from mci.core.dynamic_server import DynamicMCPServer
 
 
 def create_test_schema(schema_dict: dict) -> str:

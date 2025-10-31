@@ -162,7 +162,7 @@ async def test_server_creation_and_tools():
         # Step 5: Test with filter
         print("Step 5: Creating server with filter (tags:math)...")
         filtered_server = DynamicMCPServer(schema_path, filter_spec="tags:math", env_vars=env_vars)
-        filtered_instance = await filtered_server.create_from_mci_schema(
+        await filtered_server.create_from_mci_schema(
             "filtered-server", "1.0.0"
         )
 
@@ -181,7 +181,7 @@ async def test_server_creation_and_tools():
         only_server = DynamicMCPServer(
             schema_path, filter_spec="only:greet,echo_message", env_vars=env_vars
         )
-        only_instance = await only_server.create_from_mci_schema("only-server", "1.0.0")
+        await only_server.create_from_mci_schema("only-server", "1.0.0")
 
         print(f"✓ Only-filtered server created")
         print(f"  Tools registered: {only_server.get_tool_count()}")

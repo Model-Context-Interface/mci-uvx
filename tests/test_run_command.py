@@ -161,6 +161,8 @@ async def test_run_command_with_toolsets():
         with patch("mci.cli.run.run_server", new_callable=AsyncMock) as mock_run_server:
             result = runner.invoke(run, ["--file", schema_path])
 
+            # Verify command completed successfully
+            assert result.exit_code == 0
             # Verify server was created with all tools (main + toolset)
             assert mock_run_server.called
 
@@ -243,7 +245,7 @@ async def test_run_command_filter_variations():
 
         # Test 'without-tags' filter
         with patch("mci.cli.run.run_server", new_callable=AsyncMock) as mock_run_server:
-            result = runner.invoke(
+            runner.invoke(
                 run, ["--file", schema_path, "--filter", "without-tags:database"]
             )
             assert mock_run_server.called
