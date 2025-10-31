@@ -182,4 +182,7 @@ testpaths = [
     "tests",
 ]
 norecursedirs = []
-filterwarnings = []
+filterwarnings = [
+    "ignore::RuntimeWarning",
+    "ignore::pytest.PytestUnraisableExceptionWarning",
+]
