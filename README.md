@@ -975,6 +975,154 @@ if not is_valid:
 
 * * *
 
+## MCP Server Creation Infrastructure
+
+The MCI CLI provides infrastructure for creating MCP (Model Context Protocol) servers that dynamically serve tools from MCI schemas. This allows you to expose MCI tools via the MCP protocol, making them available to MCP-compatible clients.
+
+### Overview
+
+The MCP server creation system consists of three main components:
+
+1. **MCIToolConverter**: Converts MCI tool definitions to MCP tool format
+2. **MCPServerBuilder**: Creates and configures MCP servers with MCI tools
+3. **ServerInstance**: Manages server lifecycle and delegates execution to MCIClient
+
+### Key Features
+
+- **Dynamic Tool Loading**: Tools are loaded from MCI schemas using MCIClient and kept in memory
+- **Automatic Conversion**: MCI tools are automatically converted to MCP-compatible tool definitions
+- **Execution Delegation**: Tool execution is delegated back to MCIClient, ensuring consistency
+- **Flexible Filtering**: Use MCIClient's filtering capabilities to selectively expose tools
+- **MCP Protocol Compliance**: Full support for MCP tool listing and execution protocols
+
+### Architecture
+
+```
+MCI Schema → MCIClient → MCPServerBuilder → MCP Server → STDIO
+                ↓              ↓                ↓
+            Tools loaded   Converted      Tool execution
+            from schema    to MCP format  via MCIClient
+```
+
+### Usage Example
+
+```python
+from mcipy import MCIClient
+from mci.core.mcp_server import MCPServerBuilder, ServerInstance
+
+# Step 1: Load MCI schema
+mci_client = MCIClient(schema_file_path="mci.json")
+tools = mci_client.tools()
+
+# Step 2: Create MCP server
+builder = MCPServerBuilder(mci_client)
+server = await builder.create_server("my-mci-server", "1.0.0")
+
+# Step 3: Register tools
+await builder.register_all_tools(server, tools)
+
+# Step 4: Create and start server instance
+instance = ServerInstance(server, mci_client)
+await instance.start(stdio=True)  # Runs server on STDIO
+```
+
+### Tool Conversion
+
+MCI tools are automatically converted to MCP tool format:
+
+**MCI Tool:**
+```json
+{
+  "name": "greet",
+  "description": "Greet a person by name",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "name": {"type": "string"}
+    }
+  },
+  "execution": {
+    "type": "text",
+    "text": "Hello, {{props.name}}!"
+  }
+}
+```
+
+**MCP Tool (after conversion):**
+```python
+types.Tool(
+    name="greet",
+    description="Greet a person by name",
+    inputSchema={
+        "type": "object",
+        "properties": {
+            "name": {"type": "string"}
+        }
+    }
+)
+```
+
+### Filtering Tools
+
+You can use MCIClient's filtering methods to selectively expose tools:
+
+```python
+# Expose only API-related tools
+api_tools = mci_client.tags(["api"])
+await builder.register_all_tools(server, api_tools)
+
+# Expose specific tools by name
+specific_tools = mci_client.only(["get_weather", "get_forecast"])
+await builder.register_all_tools(server, specific_tools)
+
+# Exclude certain tools
+safe_tools = mci_client.without(["dangerous_operation"])
+await builder.register_all_tools(server, safe_tools)
+```
+
+### Tool Execution
+
+When an MCP client calls a tool, the server:
+
+1. Receives the tool call via MCP protocol
+2. Delegates execution to `MCIClient.execute()`
+3. Converts the result to MCP TextContent format
+4. Returns the response to the client
+
+This ensures that all execution logic remains in MCIClient, avoiding duplication.
+
+### Server Lifecycle
+
+The `ServerInstance` class manages the server lifecycle:
+
+- **Startup**: Initialize MCP protocol handlers and prepare for requests
+- **Runtime**: Handle tool listing and execution requests
+- **Shutdown**: Clean up resources (handled by async context manager)
+
+### Advanced Features
+
+For advanced MCP server features, including:
+
+- Lifespan management with resource initialization/cleanup
+- Structured output support
+- Direct `CallToolResult` returns with `_meta` field
+- Low-level server API usage
+
+See [mcp-server-docs.md](mcp-server-docs.md) for comprehensive documentation.
+
+### Integration with CLI
+
+The MCP server infrastructure is designed to be used by the `mci run` command (Stage 9), which will:
+
+1. Load tools from an MCI schema file
+2. Create an MCP server with those tools
+3. Start the server on STDIO
+4. Handle incoming MCP protocol requests
+
+This allows users to instantly turn any MCI schema into a running MCP server.
+
+* * *
+
 ## Project Docs
 
 For how to install uv and Python, see [installation.md](installation.md).
