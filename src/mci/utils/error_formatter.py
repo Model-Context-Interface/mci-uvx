@@ -41,9 +41,9 @@ class ErrorFormatter:
         Initialize the ErrorFormatter.
 
         Args:
-            console: Optional Rich Console instance. If None, creates a new one.
+            console: Rich Console instance. Defaults to a new Console if not provided.
         """
-        self.console: Console = console or Console()
+        self.console: Console = console if console is not None else Console()
 
     def format_validation_errors(self, errors: list[ValidationError]) -> None:
         """

@@ -10,6 +10,7 @@ import json
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -51,7 +52,7 @@ class MCIValidator:
         """
         self.file_path: str = file_path
         self.env_vars: dict[str, str] = env_vars or {}
-        self.schema_data: dict[str, object] | None = None
+        self.schema_data: dict[str, Any] | None = None
 
     def validate_schema(self) -> ValidationResult:
         """
@@ -139,7 +140,8 @@ class MCIValidator:
         if not mcp_servers:
             return warnings
 
-        # Type narrowing: mcp_servers should be a dict
+        # Type narrowing: guard against invalid schema data where mcp_servers
+        # might not be a dict (in case it passed MCIClient validation but has unexpected type)
         if not isinstance(mcp_servers, dict):
             return warnings
 

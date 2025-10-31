@@ -87,8 +87,9 @@ def test_schema_with_missing_toolsets():
     """
     Test 3: Schema with missing toolset files.
     
-    MCIClient validates toolset references and treats missing toolsets as errors.
-    This test demonstrates that validation fails when toolsets don't exist in the mci/ directory.
+    This test verifies that the validate CLI command correctly reports errors from MCIClient
+    when toolset references are missing (i.e., toolset files do not exist in the mci/ directory).
+    It demonstrates that validation fails and the CLI output includes appropriate error messages.
     """
     console = Console()
     print_section(console, "Test 3: Schema with Missing Toolset Files (Errors)")
