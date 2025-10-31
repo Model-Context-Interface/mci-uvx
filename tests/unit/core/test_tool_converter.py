@@ -6,7 +6,6 @@ ensuring proper schema conversion and metadata preservation.
 """
 
 import mcp.types as types
-import pytest
 from mcipy.models import Tool
 
 from mci.core.tool_converter import MCIToolConverter
