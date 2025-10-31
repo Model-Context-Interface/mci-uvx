@@ -41,6 +41,7 @@ dependencies = [
     "click>=8.3.0",
     "mci-py>=1.1.1",
     "mcp>=1.19.0",
+    "pytest-cov>=7.0.0",
     "pyyaml>=6.0.3",
     "rich>=14.2.0",
 ]
@@ -181,4 +182,7 @@ testpaths = [
     "tests",
 ]
 norecursedirs = []
-filterwarnings = []
+filterwarnings = [
+    "ignore::RuntimeWarning",
+    "ignore::pytest.PytestUnraisableExceptionWarning",
+]

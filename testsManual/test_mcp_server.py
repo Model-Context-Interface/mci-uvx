@@ -125,6 +125,7 @@ async def main():
         # Step 7: Create ServerInstance
         print("Step 7: Creating ServerInstance...")
         instance = ServerInstance(server, mci_client)
+        # await instance.start(stdio=True)
         print(f"✓ Created instance (running: {instance._running})")
         print()
 

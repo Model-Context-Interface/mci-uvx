@@ -10,6 +10,7 @@ import click
 from mci.cli.add import add
 from mci.cli.install import install
 from mci.cli.list import list_command
+from mci.cli.run import run
 from mci.cli.validate import validate
 
 
@@ -28,6 +29,7 @@ def main():
 main.add_command(add)
 main.add_command(install)
 main.add_command(list_command, name="list")
+main.add_command(run)
 main.add_command(validate)
 
 
