@@ -11,7 +11,6 @@ from pathlib import Path
 
 import pytest
 from mcipy import MCIClient
-from mcipy.models import Tool
 
 from mci.core.mcp_server import MCPServerBuilder, ServerInstance
 
