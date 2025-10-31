@@ -343,6 +343,145 @@ uv run mci list --filter tags:production --verbose
 
 * * *
 
+## Add Toolset References with `mci add`
+
+The `mci add` command adds toolset references to your MCI schema files. It supports optional filtering and automatically preserves the original file format (JSON stays JSON, YAML stays YAML).
+
+### Basic Usage
+
+```bash
+# Add a toolset without filter
+uv run mci add weather-tools
+
+# Add a toolset with "only" filter
+uv run mci add analytics --filter=only:Tool1,Tool2
+
+# Add a toolset with "tags" filter
+uv run mci add api-tools --filter=tags:api,database
+
+# Add to a custom file
+uv run mci add weather-tools --path=custom.mci.json
+```
+
+### Filter Types
+
+The `add` command supports the same filter types as the MCI schema:
+
+#### Only Filter
+
+Include only specific tools from the toolset:
+
+```bash
+uv run mci add analytics --filter=only:SummarizeData,AnalyzeSentiment
+```
+
+This adds to your schema:
+
+```json
+{
+  "toolsets": [
+    {
+      "name": "analytics",
+      "filter": "only",
+      "filterValue": "SummarizeData,AnalyzeSentiment"
+    }
+  ]
+}
+```
+
+#### Except Filter
+
+Exclude specific tools from the toolset:
+
+```bash
+uv run mci add weather-tools --filter=except:DeprecatedTool
+```
+
+#### Tags Filter
+
+Include tools with specific tags:
+
+```bash
+uv run mci add api-tools --filter=tags:api,database
+```
+
+#### WithoutTags Filter
+
+Exclude tools with specific tags:
+
+```bash
+uv run mci add internal-tools --filter=withoutTags:deprecated,experimental
+```
+
+### Format Preservation
+
+The `add` command automatically detects and preserves your file format:
+
+**JSON files** stay JSON:
+```bash
+# Before (mci.json)
+{
+  "toolsets": []
+}
+
+# Run: mci add weather-tools
+# After (still JSON)
+{
+  "toolsets": ["weather-tools"]
+}
+```
+
+**YAML files** stay YAML:
+```bash
+# Before (mci.yaml)
+toolsets: []
+
+# Run: mci add weather-tools
+# After (still YAML)
+toolsets:
+  - weather-tools
+```
+
+### Duplicate Handling
+
+The `add` command handles duplicates gracefully:
+
+- **Adding an existing toolset**: Updates it with the new filter (if provided)
+- **No duplicates created**: Each toolset appears only once in the array
+
+Example:
+
+```bash
+# Initial state: toolsets: ["weather-tools"]
+uv run mci add weather-tools --filter=tags:api
+
+# Result: toolsets updated, not duplicated
+# toolsets: [{"name": "weather-tools", "filter": "tags", "filterValue": "api"}]
+```
+
+### Auto-discovery
+
+The `add` command automatically finds your MCI file:
+
+1. Looks for `mci.json` in the current directory
+2. Falls back to `mci.yaml` if JSON not found
+3. Falls back to `mci.yml` if YAML not found
+
+To use a custom path:
+
+```bash
+uv run mci add weather-tools --path=./config/custom.mci.json
+```
+
+### Use Cases
+
+- **Add toolsets from library**: Quickly add pre-built toolsets from your `./mci` directory
+- **Configure filtering**: Add toolsets with specific tool subsets
+- **Organize tools**: Group related tools into toolsets for better organization
+- **Update existing references**: Modify filters on existing toolset references
+
+* * *
+
 ## Validate MCI Schemas with `mci validate`
 
 The `mci validate` command checks MCI schema files for correctness using mci-py's built-in validation engine. It provides comprehensive validation of schema structure, types, and references, plus additional checks for toolset files and MCP command availability.
