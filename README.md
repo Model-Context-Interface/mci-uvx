@@ -372,7 +372,7 @@ These are critical issues that prevent the schema from being used. Validation us
 - **Required fields**: Presence of `schemaVersion` and `metadata`
 - **Data types**: Field values match expected types
 - **Tool definitions**: Valid execution types and input schemas
-- **Toolset references**: Toolset files exist in the `mci/` directory
+- **Toolset references**: Referenced toolsets must exist in the `mci/` directory (validated by MCIClient)
 - **MCP server definitions**: Valid server configurations
 
 If any errors are found, validation fails and the schema cannot be used.

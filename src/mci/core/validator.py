@@ -90,10 +90,7 @@ class MCIValidator:
             errors.append(ValidationError(message=f"Failed to load schema data: {str(e)}"))
             return ValidationResult(errors=errors, warnings=warnings, is_valid=False)
 
-        # Perform additional checks (as warnings)
-        toolset_warnings = self.check_toolset_files()
-        warnings.extend(toolset_warnings)
-
+        # Perform additional checks for MCP commands (as warnings)
         mcp_warnings = self.check_mcp_commands()
         warnings.extend(mcp_warnings)
 
@@ -120,51 +117,6 @@ class MCIValidator:
                 self.schema_data = yaml.safe_load(f)
             else:
                 raise ValueError(f"Unsupported file format: {file_path.suffix}")
-
-    def check_toolset_files(self) -> list[ValidationWarning]:
-        """
-        Check that referenced toolset files exist.
-
-        Returns:
-            List of ValidationWarning for missing toolset files
-
-        Example:
-            >>> validator = MCIValidator("mci.json")
-            >>> validator._load_schema_data()
-            >>> warnings = validator.check_toolset_files()
-        """
-        warnings: list[ValidationWarning] = []
-
-        if not self.schema_data:
-            return warnings
-
-        toolsets = self.schema_data.get("toolsets", [])
-        if not toolsets:
-            return warnings
-
-        schema_dir = Path(self.file_path).parent
-        mci_dir = schema_dir / "mci"
-
-        # Type narrowing: toolsets should be a list
-        if not isinstance(toolsets, list):
-            return warnings
-
-        for toolset in toolsets:
-            if isinstance(toolset, str):
-                # Toolset is a string reference (e.g., "weather")
-                # Should correspond to mci/weather.mci.json or mci/weather.mci.yaml
-                toolset_json = mci_dir / f"{toolset}.mci.json"
-                toolset_yaml = mci_dir / f"{toolset}.mci.yaml"
-
-                if not toolset_json.exists() and not toolset_yaml.exists():
-                    warnings.append(
-                        ValidationWarning(
-                            message=f"Toolset file not found: {toolset}",
-                            suggestion=f"Create {toolset_json} or {toolset_yaml}, or update the toolset reference",
-                        )
-                    )
-
-        return warnings
 
     def check_mcp_commands(self) -> list[ValidationWarning]:
         """

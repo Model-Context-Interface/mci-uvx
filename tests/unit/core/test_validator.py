@@ -8,10 +8,7 @@ import json
 import tempfile
 from pathlib import Path
 
-import pytest
-
-from mci.core.validator import MCIValidator, ValidationResult
-from mci.utils.error_formatter import ValidationError, ValidationWarning
+from mci.core.validator import MCIValidator
 
 
 def test_valid_schema_via_mciclient():

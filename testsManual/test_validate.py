@@ -84,7 +84,12 @@ def test_invalid_schema():
 
 
 def test_schema_with_missing_toolsets():
-    """Test 3: Schema with missing toolset files (errors in MCIClient)."""
+    """
+    Test 3: Schema with missing toolset files.
+    
+    MCIClient validates toolset references and treats missing toolsets as errors.
+    This test demonstrates that validation fails when toolsets don't exist in the mci/ directory.
+    """
     console = Console()
     print_section(console, "Test 3: Schema with Missing Toolset Files (Errors)")
 
