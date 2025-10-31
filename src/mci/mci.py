@@ -9,6 +9,7 @@ import click
 
 from mci.cli.install import install
 from mci.cli.list import list_command
+from mci.cli.validate import validate
 
 
 @click.group()
@@ -25,6 +26,7 @@ def main():
 # Register commands
 main.add_command(install)
 main.add_command(list_command, name="list")
+main.add_command(validate)
 
 
 if __name__ == "__main__":

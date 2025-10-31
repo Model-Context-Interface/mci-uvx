@@ -341,8 +341,215 @@ uv run mci list --filter tags:production --verbose
 - **Validation**: Check that toolsets are loaded correctly
 - **Filtering**: Test filter specifications before using them with `mci run`
 
+* * *
 
-### Development Foundation
+## Validate MCI Schemas with `mci validate`
+
+The `mci validate` command checks MCI schema files for correctness using mci-py's built-in validation engine. It provides comprehensive validation of schema structure, types, and references, plus additional checks for toolset files and MCP command availability.
+
+### Basic Usage
+
+```bash
+# Validate default mci.json/mci.yaml in current directory
+uv run mci validate
+
+# Validate a specific file
+uv run mci validate --file custom.mci.json
+
+# Validate with environment variables
+uv run mci validate -e API_KEY=test123 -e BASE_URL=https://api.example.com
+```
+
+### What Gets Validated
+
+The validate command performs two levels of checks:
+
+#### 1. Schema Validation (Errors)
+
+These are critical issues that prevent the schema from being used. Validation uses MCIClient from mci-py, which checks:
+
+- **Schema structure**: Correct JSON/YAML syntax
+- **Required fields**: Presence of `schemaVersion` and `metadata`
+- **Data types**: Field values match expected types
+- **Tool definitions**: Valid execution types and input schemas
+- **Toolset references**: Referenced toolsets must exist in the `mci/` directory (validated by MCIClient)
+- **MCP server definitions**: Valid server configurations
+
+If any errors are found, validation fails and the schema cannot be used.
+
+#### 2. Additional Checks (Warnings)
+
+These are non-critical issues that don't prevent the schema from being used:
+
+- **Missing MCP commands**: Checks if MCP server commands are available in PATH
+- Commands not in PATH generate warnings but don't fail validation
+
+### Validation Output
+
+#### Valid Schema
+
+```bash
+uv run mci validate
+```
+
+Output:
+```
+╭───────────── Validation Successful ──────────────╮
+│ ✅ Schema is valid!                              │
+│                                                  │
+│ File: /path/to/mci.json                          │
+╰──────────────────────────────────────────────────╯
+```
+
+#### Schema with Errors
+
+```bash
+uv run mci validate --file invalid.mci.json
+```
+
+Output:
+```
+╭────────── Schema Validation Failed ──────────╮
+│ ❌ Validation Errors                          │
+│                                               │
+│ 1. Failed to load schema: Missing required   │
+│    field 'schemaVersion'                      │
+│                                               │
+╰───────────────────────────────────────────────╯
+
+💡 Fix the errors above and run 'mci validate' again
+```
+
+#### Schema with Warnings
+
+```bash
+uv run mci validate
+```
+
+Output:
+```
+╭──────────────────── Warnings ─────────────────────╮
+│ ⚠️  Validation Warnings                            │
+│                                                   │
+│ 1. MCP server command not found in PATH:         │
+│    weather-mcp (server: weather_server)           │
+│    💡 Install the command or ensure it's in PATH  │
+│                                                   │
+╰───────────────────────────────────────────────────╯
+
+╭───────────── Validation Successful ──────────────╮
+│ ✅ Schema is valid!                              │
+│                                                  │
+│ File: /path/to/mci.json                          │
+╰──────────────────────────────────────────────────╯
+```
+
+### Environment Variables
+
+Use the `-e` or `--env` flag to provide environment variables needed for template substitution:
+
+```bash
+# Single environment variable
+uv run mci validate -e API_KEY=your-api-key
+
+# Multiple environment variables
+uv run mci validate \
+  -e API_KEY=your-api-key \
+  -e BASE_URL=https://api.example.com \
+  -e PROJECT_ROOT=/path/to/project
+```
+
+Environment variables are merged with `os.environ`, so you can also set them in your shell:
+
+```bash
+export API_KEY=your-api-key
+uv run mci validate
+```
+
+### Auto-Discovery
+
+When `--file` is not specified, the validate command searches for:
+1. `mci.json` (first priority)
+2. `mci.yaml` or `mci.yml` (if JSON not found)
+
+in the current directory.
+
+### Common Validation Errors
+
+#### Missing Required Fields
+
+```json
+{
+  "tools": []  // Missing schemaVersion!
+}
+```
+
+Error:
+```
+Failed to load schema: Missing required field 'schemaVersion'
+```
+
+#### Invalid Toolset Reference
+
+```json
+{
+  "schemaVersion": "1.0",
+  "metadata": { "name": "Test" },
+  "tools": [],
+  "toolsets": ["nonexistent"]  // No file at mci/nonexistent.mci.json
+}
+```
+
+Error:
+```
+Toolset not found: nonexistent. Looked for directory or file with .mci.json/.mci.yaml/.mci.yml extension in ./mci
+```
+
+#### Invalid JSON/YAML Syntax
+
+```json
+{
+  "schemaVersion": "1.0"
+  "metadata": {}  // Missing comma!
+}
+```
+
+Error:
+```
+Failed to load schema: Invalid JSON syntax
+```
+
+### Use Cases
+
+- **Pre-deployment validation**: Verify schemas before deploying
+- **CI/CD integration**: Add validation to your build pipeline
+- **Development workflow**: Check schemas after making changes
+- **Troubleshooting**: Get detailed error messages when schemas don't load
+- **Team collaboration**: Ensure all team members use valid schemas
+
+### Exit Codes
+
+- `0`: Schema is valid (warnings are OK)
+- `1`: Validation failed with errors or file not found
+
+### Integration with mci-py
+
+The validate command leverages mci-py's built-in validation:
+
+```python
+from mci.core.config import MCIConfig
+
+# Programmatic validation (same as CLI)
+config = MCIConfig()
+is_valid, error = config.validate_schema("mci.json")
+
+if not is_valid:
+    print(f"Validation error: {error}")
+```
+
+All validation logic is provided by `MCIClient` from mci-py, ensuring consistency between the CLI and programmatic usage.
+
+* * *
 
 All further development stages build on this foundational structure:
 - **Stage 1**: ✅ Project Setup & Core Dependencies
@@ -350,7 +557,7 @@ All further development stages build on this foundational structure:
 - **Stage 3**: ✅ CLI Command: `mci install`
 - **Stage 4**: ✅ MCI-PY Integration & Tool Loading
 - **Stage 5**: ✅ CLI Command: `mci list`
-- **Stage 6**: CLI Command: `mci validate`
+- **Stage 6**: ✅ CLI Command: `mci validate`
 - **Stage 7**: CLI Command: `mci add`
 - **Stage 8**: MCP Server Creation Infrastructure
 - **Stage 9**: CLI Command: `mci run`
