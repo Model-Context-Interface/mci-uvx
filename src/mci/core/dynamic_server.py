@@ -19,9 +19,6 @@ which is expected.
 """
 # pyright: reportAttributeAccessIssue=false
 
-import signal
-from typing import Any
-
 from mcp.server.lowlevel import Server
 
 from mci.core.mci_client import MCIClientWrapper
@@ -58,7 +55,6 @@ class DynamicMCPServer:
         self.server: Server | None = None
         self.instance: ServerInstance | None = None
         self.mci_client_wrapper: MCIClientWrapper | None = None
-        self._shutdown_requested: bool = False
 
     async def create_from_mci_schema(
         self, server_name: str = "mci-dynamic-server", server_version: str = "1.0.0"
@@ -115,7 +111,10 @@ class DynamicMCPServer:
         Start the MCP server on STDIO transport.
 
         This method starts the server and blocks until shutdown is requested.
-        It handles graceful shutdown on SIGINT (Ctrl+C).
+        The server will stop when:
+        - Ctrl+C (KeyboardInterrupt) is pressed
+        - The client disconnects
+        - An unrecoverable error occurs
 
         The server will:
         - Respond to MCP protocol requests for tool listing
@@ -135,17 +134,9 @@ class DynamicMCPServer:
         if self.instance is None:
             raise RuntimeError("Server instance not created. Call create_from_mci_schema() first.")
 
-        # Set up signal handler for graceful shutdown
-        def signal_handler(_sig: int, _frame: Any) -> None:
-            """Handle shutdown signals."""
-            self._shutdown_requested = True
-
-        # Register signal handlers
-        signal.signal(signal.SIGINT, signal_handler)
-        signal.signal(signal.SIGTERM, signal_handler)
-
         try:
             # Start the server on STDIO (this blocks until server stops)
+            # KeyboardInterrupt will be raised automatically when Ctrl+C is pressed
             await self.instance.start(stdio=True)
         except KeyboardInterrupt:
             # Graceful shutdown on Ctrl+C
