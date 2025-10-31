@@ -1,7 +1,11 @@
 """
 Feature tests for the add command.
 
-Tests full add workflow including format preservation and various filter types.
+These tests exercise the complete workflow from CLI invocation through file modification,
+verifying end-to-end behavior and integration. Unlike unit tests (located in tests/unit/),
+which test individual components in isolation, these feature tests ensure that the add
+command works as expected in real usage scenarios, including format preservation and
+various filter types.
 """
 
 import json
