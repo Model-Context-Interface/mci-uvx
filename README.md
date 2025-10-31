@@ -502,8 +502,7 @@ Failed to load schema: Missing required field 'schemaVersion'
 
 Error:
 ```
-Toolset not found: nonexistent. Looked for directory, file, or file 
-with .mci.json/.mci.yaml/.mci.yml extension in ./mci
+Toolset not found: nonexistent. Looked for directory or file with .mci.json/.mci.yaml/.mci.yml extension in ./mci
 ```
 
 #### Invalid JSON/YAML Syntax

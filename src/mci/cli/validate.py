@@ -62,7 +62,7 @@ def validate(file: str | None, env: tuple[str, ...]) -> None:
                 "Expected KEY=VALUE.[/yellow]"
             )
 
-    # Merge with os.environ for any additional env vars
+    # Merge environment variables: user-provided env vars override system environment variables
     merged_env = {**os.environ, **env_vars}
 
     # Find the schema file
