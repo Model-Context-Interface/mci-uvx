@@ -16,7 +16,9 @@
             "description": "Message to echo"
           }
         },
-        "required": ["message"]
+        "required": [
+          "message"
+        ]
       },
       "execution": {
         "type": "text",
@@ -24,6 +26,8 @@
       }
     }
   ],
-  "toolsets": [],
+  "toolsets": [
+    "weather-tools"
+  ],
   "mcp_servers": {}
 }
