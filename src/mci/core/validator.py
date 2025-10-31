@@ -148,7 +148,8 @@ class MCIValidator:
                 command = server_config.get("command")
                 if command:
                     # Check if command is available in PATH
-                    if not shutil.which(command):
+                    # Ensure command is a string (not PathLike) to avoid deprecation warning
+                    if not shutil.which(str(command)):
                         warnings.append(
                             ValidationWarning(
                                 message=f"MCP server command not found in PATH: {command} (server: {server_name})",
