@@ -10,6 +10,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
+
 from mci.core.dynamic_server import DynamicMCPServer
 
 

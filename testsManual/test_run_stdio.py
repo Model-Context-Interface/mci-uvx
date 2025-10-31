@@ -166,7 +166,7 @@ async def test_server_creation_and_tools():
             "filtered-server", "1.0.0"
         )
 
-        print(f"✓ Filtered server created")
+        print("✓ Filtered server created")
         print(f"  Tools registered: {filtered_server.get_tool_count()}")
         print()
 
@@ -183,7 +183,7 @@ async def test_server_creation_and_tools():
         )
         await only_server.create_from_mci_schema("only-server", "1.0.0")
 
-        print(f"✓ Only-filtered server created")
+        print("✓ Only-filtered server created")
         print(f"  Tools registered: {only_server.get_tool_count()}")
         print()
 
@@ -219,7 +219,7 @@ async def test_server_creation_and_tools():
     finally:
         # Cleanup
         Path(schema_path).unlink()
-        print(f"\n✓ Cleaned up test schema file")
+        print("\n✓ Cleaned up test schema file")
 
 
 async def demonstrate_cli_usage():

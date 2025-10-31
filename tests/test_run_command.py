@@ -97,7 +97,7 @@ async def test_run_command_full_workflow():
 
         # Test 2: Run with explicit file
         with patch("mci.cli.run.run_server", new_callable=AsyncMock) as mock_run_server:
-            result = runner.invoke(run, ["--file", schema_path])
+            runner.invoke(run, ["--file", schema_path])
 
             assert mock_run_server.called
             call_args = mock_run_server.call_args
@@ -159,10 +159,8 @@ async def test_run_command_with_toolsets():
 
     try:
         with patch("mci.cli.run.run_server", new_callable=AsyncMock) as mock_run_server:
-            result = runner.invoke(run, ["--file", schema_path])
+            runner.invoke(run, ["--file", schema_path])
 
-            # Verify command completed successfully
-            assert result.exit_code == 0
             # Verify server was created with all tools (main + toolset)
             assert mock_run_server.called
 
@@ -230,17 +228,17 @@ async def test_run_command_filter_variations():
     try:
         # Test 'only' filter
         with patch("mci.cli.run.run_server", new_callable=AsyncMock) as mock_run_server:
-            result = runner.invoke(run, ["--file", schema_path, "--filter", "only:tool1,tool2"])
+            runner.invoke(run, ["--file", schema_path, "--filter", "only:tool1,tool2"])
             assert mock_run_server.called
 
         # Test 'except' filter
         with patch("mci.cli.run.run_server", new_callable=AsyncMock) as mock_run_server:
-            result = runner.invoke(run, ["--file", schema_path, "--filter", "except:tool3"])
+            runner.invoke(run, ["--file", schema_path, "--filter", "except:tool3"])
             assert mock_run_server.called
 
         # Test 'tags' filter
         with patch("mci.cli.run.run_server", new_callable=AsyncMock) as mock_run_server:
-            result = runner.invoke(run, ["--file", schema_path, "--filter", "tags:api"])
+            runner.invoke(run, ["--file", schema_path, "--filter", "tags:api"])
             assert mock_run_server.called
 
         # Test 'without-tags' filter

@@ -65,7 +65,7 @@ def test_run_default_file(runner, basic_schema):
                 with open("mci.json", "w") as f:
                     json.dump(basic_schema, f)
 
-                result = runner.invoke(run, [])
+                runner.invoke(run, [])
 
                 # Verify command attempted to start server
                 mock_run_server.assert_called_once()
@@ -85,12 +85,13 @@ def test_run_custom_file(runner, basic_schema):
 
     try:
         with patch("mci.cli.run.run_server", new_callable=AsyncMock) as mock_run_server:
-            runner.invoke(run, ["--file", schema_path])
+            result = runner.invoke(run, ["--file", schema_path])
 
             # Verify run_server was called with correct file
             assert mock_run_server.called
             call_args = mock_run_server.call_args
             assert call_args[0][0] == schema_path
+            assert result.exit_code == 0
 
     finally:
         Path(schema_path).unlink()
@@ -124,11 +125,12 @@ def test_run_with_only_filter(runner, basic_schema):
 
     try:
         with patch("mci.cli.run.run_server", new_callable=AsyncMock) as mock_run_server:
-            runner.invoke(run, ["--file", schema_path, "--filter", "only:tool1,tool2"])
+            result = runner.invoke(run, ["--file", schema_path, "--filter", "only:tool1,tool2"])
 
             assert mock_run_server.called
             call_args = mock_run_server.call_args
             assert call_args[0][1] == "only:tool1,tool2"
+            assert result.exit_code == 0
 
     finally:
         Path(schema_path).unlink()
@@ -223,7 +225,7 @@ def test_run_displays_startup_message(runner, basic_schema):
     schema_path = create_test_schema(basic_schema)
 
     try:
-        with patch("mci.cli.run.run_server", new_callable=AsyncMock) as mock_run_server:
+        with patch("mci.cli.run.run_server", new_callable=AsyncMock):
             result = runner.invoke(run, ["--file", schema_path, "--filter", "tags:api"])
 
             # Verify startup message is displayed
