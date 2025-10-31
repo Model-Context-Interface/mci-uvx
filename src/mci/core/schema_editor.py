@@ -25,9 +25,12 @@ class SchemaEditor:
     """
 
     def __init__(self):
-        """Initialize the SchemaEditor."""
+        """Initialize the SchemaEditor with empty state."""
+        # Stores the loaded schema dictionary
         self.schema_data: dict[str, Any] | None = None
+        # Stores the detected file format ('json' or 'yaml')
         self.file_format: str | None = None
+        # Stores the path of the loaded schema file
         self.file_path: str | None = None
 
     def load_schema(self, file_path: str) -> dict[str, Any]:
