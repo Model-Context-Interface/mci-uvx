@@ -18,7 +18,7 @@ test:
 	uv run pytest
 
 coverage:
-	uv run pytest --cov=src/mcipy --cov-report=term-missing
+	uv run pytest --cov=src/mci --cov-report=term-missing
 
 upgrade:
 	uv sync --upgrade --all-extras --dev

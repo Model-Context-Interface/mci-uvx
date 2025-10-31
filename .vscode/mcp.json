@@ -1,0 +1,23 @@
+{
+	"servers": {
+		"test-mcp": {
+			"type": "stdio",
+			"command": "uv",
+			"args": [
+				"run",
+				"python",
+				"testsManual/test_mcp_server.py"
+			]
+		},
+		"mci-test": {
+			"type": "stdio",
+			"command": "uv",
+			"args": [
+				"run",
+				"mci",
+				"run"
+			]
+		}
+	},
+	"inputs": []
+}
