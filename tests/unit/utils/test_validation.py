@@ -55,7 +55,8 @@ def test_file_exists_with_existing_file():
 
 def test_file_exists_with_nonexistent_file():
     """Test file_exists with a nonexistent file."""
-    assert file_exists("/tmp/nonexistent_file_12345.json") is False
+    temp_path = os.path.join(tempfile.gettempdir(), "nonexistent_file_12345.json")
+    assert file_exists(temp_path) is False
 
 
 def test_file_exists_with_directory():
@@ -85,7 +86,8 @@ def test_is_readable_with_readable_file():
 
 def test_is_readable_with_nonexistent_file():
     """Test is_readable with a nonexistent file."""
-    assert is_readable("/tmp/nonexistent_file_12345.json") is False
+    temp_path = os.path.join(tempfile.gettempdir(), "nonexistent_file_12345.json")
+    assert is_readable(temp_path) is False
 
 
 def test_is_readable_with_empty_path():

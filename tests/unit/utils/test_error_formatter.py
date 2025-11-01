@@ -4,6 +4,7 @@ Unit tests for ErrorFormatter class.
 Tests error and warning formatting utilities for CLI display.
 """
 
+import pytest
 from io import StringIO
 
 from rich.console import Console
@@ -15,54 +16,49 @@ from mci.utils.error_formatter import (
 )
 
 
-def test_format_validation_errors_with_single_error():
-    """Test formatting a single validation error."""
+@pytest.fixture
+def formatter():
+    """Create an ErrorFormatter with StringIO console for testing."""
     console = Console(file=StringIO(), force_terminal=True)
-    formatter = ErrorFormatter(console)
-    
+    return ErrorFormatter(console)
+
+
+def test_format_validation_errors_with_single_error(formatter):
+    """Test formatting a single validation error."""
     errors = [ValidationError(message="Missing required field: name")]
     formatter.format_validation_errors(errors)
     
-    output = console.file.getvalue()  # type: ignore[attr-defined]
+    output = formatter.console.file.getvalue()  # type: ignore[attr-defined]
     assert "❌ Validation Errors" in output
     assert "Missing required field: name" in output
     assert "Schema Validation Failed" in output
 
 
-def test_format_validation_errors_with_multiple_errors():
+def test_format_validation_errors_with_multiple_errors(formatter):
     """Test formatting multiple validation errors."""
-    console = Console(file=StringIO(), force_terminal=True)
-    formatter = ErrorFormatter(console)
-    
     errors = [
         ValidationError(message="Missing required field: name"),
         ValidationError(message="Invalid type for field: age", location="tools[0]"),
     ]
     formatter.format_validation_errors(errors)
     
-    output = console.file.getvalue()  # type: ignore[attr-defined]
+    output = formatter.console.file.getvalue()  # type: ignore[attr-defined]
     assert "❌ Validation Errors" in output
     assert "Missing required field: name" in output
     assert "Invalid type for field: age" in output
     assert "[tools[0]]" in output
 
 
-def test_format_validation_errors_with_empty_list():
+def test_format_validation_errors_with_empty_list(formatter):
     """Test formatting with empty error list (should not output anything)."""
-    console = Console(file=StringIO(), force_terminal=True)
-    formatter = ErrorFormatter(console)
-    
     formatter.format_validation_errors([])
     
-    output = console.file.getvalue()  # type: ignore[attr-defined]
+    output = formatter.console.file.getvalue()  # type: ignore[attr-defined]
     assert output == ""
 
 
-def test_format_validation_warnings_with_single_warning():
+def test_format_validation_warnings_with_single_warning(formatter):
     """Test formatting a single validation warning."""
-    console = Console(file=StringIO(), force_terminal=True)
-    formatter = ErrorFormatter(console)
-    
     warnings = [
         ValidationWarning(
             message="Toolset file not found: weather.mci.json",
@@ -71,57 +67,45 @@ def test_format_validation_warnings_with_single_warning():
     ]
     formatter.format_validation_warnings(warnings)
     
-    output = console.file.getvalue()  # type: ignore[attr-defined]
+    output = formatter.console.file.getvalue()  # type: ignore[attr-defined]
     assert "⚠️  Validation Warnings" in output
     assert "Toolset file not found" in output
     assert "💡 Create the file or update your schema" in output
 
 
-def test_format_validation_warnings_with_no_suggestion():
+def test_format_validation_warnings_with_no_suggestion(formatter):
     """Test formatting a warning without suggestion."""
-    console = Console(file=StringIO(), force_terminal=True)
-    formatter = ErrorFormatter(console)
-    
     warnings = [ValidationWarning(message="Potential issue detected")]
     formatter.format_validation_warnings(warnings)
     
-    output = console.file.getvalue()  # type: ignore[attr-defined]
+    output = formatter.console.file.getvalue()  # type: ignore[attr-defined]
     assert "⚠️  Validation Warnings" in output
     assert "Potential issue detected" in output
 
 
-def test_format_validation_warnings_with_empty_list():
+def test_format_validation_warnings_with_empty_list(formatter):
     """Test formatting with empty warning list (should not output anything)."""
-    console = Console(file=StringIO(), force_terminal=True)
-    formatter = ErrorFormatter(console)
-    
     formatter.format_validation_warnings([])
     
-    output = console.file.getvalue()  # type: ignore[attr-defined]
+    output = formatter.console.file.getvalue()  # type: ignore[attr-defined]
     assert output == ""
 
 
-def test_format_validation_success():
+def test_format_validation_success(formatter):
     """Test formatting validation success message."""
-    console = Console(file=StringIO(), force_terminal=True)
-    formatter = ErrorFormatter(console)
-    
     formatter.format_validation_success("mci.json")
     
-    output = console.file.getvalue()  # type: ignore[attr-defined]
+    output = formatter.console.file.getvalue()  # type: ignore[attr-defined]
     assert "✅ Schema is valid!" in output
     assert "File: mci.json" in output
     assert "Validation Successful" in output
 
 
-def test_format_mci_error():
+def test_format_mci_error(formatter):
     """Test formatting an MCI error message."""
-    console = Console(file=StringIO(), force_terminal=True)
-    formatter = ErrorFormatter(console)
-    
     formatter.format_mci_error("Failed to load schema: Invalid JSON")
     
-    output = console.file.getvalue()  # type: ignore[attr-defined]
+    output = formatter.console.file.getvalue()  # type: ignore[attr-defined]
     assert "❌ MCI Error" in output
     assert "Failed to load schema: Invalid JSON" in output
 
