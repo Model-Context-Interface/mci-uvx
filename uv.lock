@@ -378,7 +378,7 @@ wheels = [
 ]
 
 [[package]]
-name = "mcicli"
+name = "mcix"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
