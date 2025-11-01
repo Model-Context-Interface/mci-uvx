@@ -71,7 +71,7 @@ def is_readable(path: str) -> bool:
     """
     try:
         return os.access(path, os.R_OK)
-    except (OSError, ValueError):
+    except (OSError, ValueError, TypeError):
         return False
 
 

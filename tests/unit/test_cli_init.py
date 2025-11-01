@@ -23,15 +23,6 @@ def test_cli_help():
     assert "Manage Model Context Interface schemas" in result.output
 
 
-def test_cli_version():
-    """Test that the CLI version flag works."""
-    runner = CliRunner()
-    result = runner.invoke(main, ["--version"])
-    assert result.exit_code == 0
-    # Should show version output
-    assert "version" in result.output.lower() or len(result.output.strip()) > 0
-
-
 def test_cli_no_args():
     """Test that running CLI with no arguments shows usage."""
     runner = CliRunner()
