@@ -136,9 +136,6 @@ uv run mci validate
 
 # Validate specific file
 uv run mci validate --file custom.mci.json
-
-# Validate with environment variables
-uv run mci validate -e API_KEY=test123
 ```
 
 Checks for:
@@ -249,18 +246,188 @@ uv run mci run
 
 ## Supported Execution Types
 
-MCI tools support multiple execution types:
+MCI tools support multiple execution types. Below are examples for each type:
 
-- **`text`**: Returns templated text (uses `{{props.field}}` and `{{env.VAR}}` syntax)
-- **`file`**: Reads and returns file contents
-- **`cli`**: Executes command-line programs
-- **`http`**: Makes HTTP requests (supports all methods, headers, auth)
-- **`mcp`**: Invokes other MCP servers
+### Text Execution
+
+Returns templated text using `{{props.field}}` and `{{env.VAR}}` syntax.
+
+**Example:**
+```json
+{
+  "name": "greet_user",
+  "description": "Greet a user by name",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "username": {
+        "type": "string",
+        "description": "Name of the user to greet"
+      }
+    },
+    "required": ["username"]
+  },
+  "execution": {
+    "type": "text",
+    "text": "Hello {{props.username}}! Welcome to MCI."
+  }
+}
+```
+
+This tool takes a username as input and returns a personalized greeting message.
+
+### File Execution
+
+Reads and returns file contents, with optional templating support.
+
+**Example:**
+```json
+{
+  "name": "read_config",
+  "description": "Read application configuration file",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "config_path": {
+        "type": "string",
+        "description": "Path to configuration file"
+      }
+    },
+    "required": ["config_path"]
+  },
+  "execution": {
+    "type": "file",
+    "path": "{{props.config_path}}",
+    "enableTemplating": false
+  },
+  "directoryAllowList": ["./configs", "/etc/myapp"]
+}
+```
+
+This tool reads a configuration file from an allowed directory. The `directoryAllowList` ensures files can only be read from safe locations.
+
+### CLI Execution
+
+Executes command-line programs with arguments and flags.
+
+**Example:**
+```json
+{
+  "name": "search_files",
+  "description": "Search for text in files using grep",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "pattern": {
+        "type": "string",
+        "description": "Search pattern"
+      },
+      "directory": {
+        "type": "string",
+        "description": "Directory to search in"
+      },
+      "ignore_case": {
+        "type": "boolean",
+        "description": "Ignore case in search"
+      }
+    },
+    "required": ["pattern", "directory"]
+  },
+  "execution": {
+    "type": "cli",
+    "command": "grep",
+    "args": ["-r", "-n", "{{props.pattern}}"],
+    "flags": {
+      "-i": {
+        "from": "props.ignore_case",
+        "type": "boolean"
+      }
+    },
+    "cwd": "{{props.directory}}",
+    "timeout_ms": 8000
+  }
+}
+```
+
+This tool executes `grep` to search for text in files. The `-i` flag is conditionally added based on the `ignore_case` property.
+
+### HTTP Execution
+
+Makes HTTP requests to external APIs with full header and authentication support.
+
+**Example:**
+```json
+{
+  "name": "get_weather",
+  "description": "Get current weather for a location",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "location": {
+        "type": "string",
+        "description": "City name or coordinates"
+      }
+    },
+    "required": ["location"]
+  },
+  "execution": {
+    "type": "http",
+    "method": "GET",
+    "url": "https://api.example.com/weather",
+    "params": {
+      "location": "{{props.location}}",
+      "units": "metric"
+    },
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {{env.WEATHER_API_KEY}}"
+    },
+    "timeout_ms": 5000
+  }
+}
+```
+
+This tool makes a GET request to a weather API, using an API key from the environment and the location from the input properties.
+
+### MCP Execution
+
+Invokes tools from other MCP servers (for tool composition and chaining).
+
+**Example:**
+```json
+{
+  "name": "analyze_with_ai",
+  "description": "Analyze data using AI MCP server",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "data": {
+        "type": "string",
+        "description": "Data to analyze"
+      }
+    },
+    "required": ["data"]
+  },
+  "execution": {
+    "type": "mcp",
+    "server": "ai_analysis_server",
+    "tool": "analyze_text",
+    "arguments": {
+      "text": "{{props.data}}",
+      "model": "gpt-4"
+    }
+  }
+}
+```
+
+This tool delegates execution to another MCP server's tool, enabling composition of complex workflows.
+
+### Common Features
 
 All execution types support:
-- Environment variable templating with `{{env.VAR}}`
-- Property templating with `{{props.field}}`
-- Input validation via JSON Schema
+- **Environment variable templating**: Use `{{env.VAR}}` to access environment variables
+- **Property templating**: Use `{{props.field}}` to access input properties
+- **Input validation**: Define schemas with JSON Schema for type safety
 
 ## Configuration Files
 
@@ -314,18 +481,54 @@ MCI supports environment variable templating in tool definitions:
 }
 ```
 
-Set variables before running:
+### Setting Environment Variables for MCP Clients
+
+When running MCI as an MCP server from clients like Claude Desktop or VS Code, configure environment variables in the client's settings:
+
+**Claude Desktop Example** (`claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "mci-tools": {
+      "command": "uv",
+      "args": ["run", "mci", "run"],
+      "cwd": "/path/to/your/project",
+      "env": {
+        "API_KEY": "your-api-key",
+        "BASE_URL": "https://api.example.com",
+        "PROJECT_ROOT": "/path/to/your/project"
+      }
+    }
+  }
+}
+```
+
+**VS Code Example** (`.vscode/settings.json`):
+```json
+{
+  "mcp.servers": {
+    "mci-tools": {
+      "command": "uv",
+      "args": ["run", "mci", "run"],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "API_KEY": "your-api-key",
+        "BASE_URL": "https://api.example.com",
+        "PROJECT_ROOT": "${workspaceFolder}"
+      }
+    }
+  }
+}
+```
+
+**Running Standalone** (without MCP client):
+
+If you're running the MCP server directly in a terminal, set environment variables first:
 
 ```bash
 export API_KEY=your-api-key
 export BASE_URL=https://api.example.com
 uv run mci run
-```
-
-Or pass them directly to commands that support it:
-
-```bash
-uv run mci validate -e API_KEY=test -e BASE_URL=https://test.com
 ```
 
 ## Integration with MCP Clients
