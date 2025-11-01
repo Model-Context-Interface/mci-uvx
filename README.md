@@ -4,16 +4,52 @@ A command-line interface for managing Model Context Interface (MCI) schemas and 
 
 ## Quick Start
 
-### Installation
-
-Install using uv (recommended):
+No installation needed! Run MCI directly using `uvx`:
 
 ```bash
 # Install uv if you haven't already
 curl -LsSf https://astral.sh/uv/install.sh | sh
+```
 
-# Install mci-cli
+### Your First MCI Project
+
+1. **Initialize a new project**:
+   ```bash
+   uvx mci install
+   # or
+   uvx mcicli install
+   ```
+   This creates `mci.json` with example tools and `mci/` directory with example toolsets.
+
+2. **List your tools**:
+   ```bash
+   uvx mci list
+   ```
+
+3. **Validate your configuration**:
+   ```bash
+   uvx mci validate
+   ```
+
+4. **Run an MCP server**:
+   ```bash
+   uvx mci run
+   ```
+
+That's it! Your MCI tools are now available via the MCP protocol.
+
+### Optional: Install MCI Globally
+
+If you prefer to install MCI permanently:
+
+```bash
+# Install globally with uv
 uv tool install mci-cli
+
+# Then use without uvx prefix
+mci install
+mci list
+mci run
 ```
 
 Or install from source:
@@ -24,31 +60,6 @@ cd mci-uvx
 uv sync --all-extras
 uv tool install --editable .
 ```
-
-### Your First MCI Project
-
-1. **Initialize a new project**:
-   ```bash
-   uv run mci install
-   ```
-   This creates `mci.json` with example tools and `mci/` directory with example toolsets.
-
-2. **List your tools**:
-   ```bash
-   uv run mci list
-   ```
-
-3. **Validate your configuration**:
-   ```bash
-   uv run mci validate
-   ```
-
-4. **Run an MCP server**:
-   ```bash
-   uv run mci run
-   ```
-
-That's it! Your MCI tools are now available via the MCP protocol.
 
 ## Core Concepts
 
@@ -87,10 +98,10 @@ Bootstrap a new MCI project with starter configuration.
 
 ```bash
 # Create JSON configuration (default)
-uv run mci install
+uvx mci install
 
 # Create YAML configuration
-uv run mci install --yaml
+uvx mci install --yaml
 ```
 
 Creates:
@@ -104,19 +115,19 @@ Display all available tools from your configuration.
 
 ```bash
 # List all tools (table format)
-uv run mci list
+uvx mci list
 
 # List with verbose details
-uv run mci list --verbose
+uvx mci list --verbose
 
 # Filter by tags
-uv run mci list --filter tags:api,database
+uvx mci list --filter tags:api,database
 
 # Export to JSON
-uv run mci list --format json
+uvx mci list --format json
 
 # Export to YAML
-uv run mci list --format yaml
+uvx mci list --format yaml
 ```
 
 **Filter types**:
@@ -132,10 +143,10 @@ Validate your MCI schema for correctness.
 
 ```bash
 # Validate default configuration
-uv run mci validate
+uvx mci validate
 
 # Validate specific file
-uv run mci validate --file custom.mci.json
+uvx mci validate --file custom.mci.json
 ```
 
 Checks for:
@@ -152,16 +163,16 @@ Add toolset references to your schema.
 
 ```bash
 # Add a toolset
-uv run mci add weather-tools
+uvx mci add weather-tools
 
 # Add with filter
-uv run mci add analytics --filter=only:Tool1,Tool2
+uvx mci add analytics --filter=only:Tool1,Tool2
 
 # Add with tag filter
-uv run mci add api-tools --filter=tags:api,database
+uvx mci add api-tools --filter=tags:api,database
 
 # Add to custom file
-uv run mci add weather-tools --path=custom.mci.json
+uvx mci add weather-tools --path=custom.mci.json
 ```
 
 Automatically preserves your file format (JSON stays JSON, YAML stays YAML).
@@ -172,16 +183,16 @@ Launch an MCP server that dynamically serves your tools.
 
 ```bash
 # Run with default configuration
-uv run mci run
+uvx mci run
 
 # Run with specific file
-uv run mci run --file custom.mci.json
+uvx mci run --file custom.mci.json
 
 # Run with filtered tools
-uv run mci run --filter tags:production
+uvx mci run --filter tags:production
 
 # Run excluding tools
-uv run mci run --filter except:deprecated_tool
+uvx mci run --filter except:deprecated_tool
 ```
 
 The server:
@@ -198,50 +209,50 @@ The server:
 
 ```bash
 # 1. Create a new project
-uv run mci install
+uvx mci install
 
 # 2. Add toolsets
-uv run mci add weather-tools
-uv run mci add api-tools --filter=tags:production
+uvx mci add weather-tools
+uvx mci add api-tools --filter=tags:production
 
 # 3. Preview your tools
-uv run mci list --verbose
+uvx mci list --verbose
 
 # 4. Validate everything
-uv run mci validate
+uvx mci validate
 
 # 5. Test with MCP server
-uv run mci run --filter tags:development
+uvx mci run --filter tags:development
 ```
 
 ### Production Deployment
 
 ```bash
 # Validate before deployment
-uv run mci validate
+uvx mci validate
 
 # Run server with only production tools
-uv run mci run --filter tags:production
+uvx mci run --filter tags:production
 
 # Or exclude experimental features
-uv run mci run --filter without-tags:experimental,beta
+uvx mci run --filter without-tags:experimental,beta
 ```
 
 ### Tool Development
 
 ```bash
 # Create your schema
-uv run mci install
+uvx mci install
 
 # Edit mci.json to add your tool
 # (see examples in the generated file)
 
 # Validate your changes
-uv run mci validate
+uvx mci validate
 
 # Test your tool
-uv run mci list --verbose
-uv run mci run
+uvx mci list --verbose
+uvx mci run
 ```
 
 ## Supported Execution Types
@@ -490,8 +501,8 @@ When running MCI as an MCP server from clients like Claude Desktop or VS Code, c
 {
   "mcpServers": {
     "mci-tools": {
-      "command": "uv",
-      "args": ["run", "mci", "run"],
+      "command": "uvx",
+      "args": ["mci", "run"],
       "cwd": "/path/to/your/project",
       "env": {
         "API_KEY": "your-api-key",
@@ -508,8 +519,8 @@ When running MCI as an MCP server from clients like Claude Desktop or VS Code, c
 {
   "mcp.servers": {
     "mci-tools": {
-      "command": "uv",
-      "args": ["run", "mci", "run"],
+      "command": "uvx",
+      "args": ["mci", "run"],
       "cwd": "${workspaceFolder}",
       "env": {
         "API_KEY": "your-api-key",
@@ -528,7 +539,8 @@ If you're running the MCP server directly in a terminal, set environment variabl
 ```bash
 export API_KEY=your-api-key
 export BASE_URL=https://api.example.com
-uv run mci run
+uvx mci run
+```
 ```
 
 ## Integration with MCP Clients
@@ -545,8 +557,8 @@ Example Claude Desktop configuration:
 {
   "mcpServers": {
     "mci-tools": {
-      "command": "uv",
-      "args": ["run", "mci", "run"],
+      "command": "uvx",
+      "args": ["mci", "run"],
       "cwd": "/path/to/your/project"
     }
   }
