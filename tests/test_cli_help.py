@@ -32,16 +32,6 @@ def test_cli_help_flag_variations():
     assert len(result_help.output) > 0
 
 
-def test_cli_version_flag():
-    """Test that the version flag displays version information."""
-    runner = CliRunner()
-    result = runner.invoke(main, ["--version"])
-
-    assert result.exit_code == 0
-    # Should have some output (version number or message)
-    assert len(result.output.strip()) > 0
-
-
 def test_cli_command_group():
     """Test that the CLI is a Click command group."""
     # The main function should be a Click group

@@ -2,96 +2,464 @@
 
 A command-line interface for managing Model Context Interface (MCI) schemas and dynamically running MCP (Model Context Protocol) servers using defined MCI toolsets.
 
-## Project Structure — Initial Setup
+## Quick Start
 
-The MCI CLI tool is organized into the following directory structure:
-
-```
-src/mci/
-├── __init__.py          # Package initialization, exports main CLI entry point
-├── mci.py               # Main CLI entry point with Click group
-├── cli/                 # CLI command modules
-│   └── __init__.py      # CLI package initialization
-├── core/                # Core business logic
-│   └── __init__.py      # Core package initialization
-└── utils/               # Utility functions
-    └── __init__.py      # Utils package initialization
-```
-
-### Directory Purpose
-
-- **`src/mci/`**: Main package directory containing all MCI CLI code
-- **`src/mci/mci.py`**: Main entry point with `main()` function that implements the CLI using Click
-- **`src/mci/cli/`**: Contains all CLI command implementations (install, list, validate, add, run)
-- **`src/mci/core/`**: Core business logic including MCI schema management, tool loading, and MCP server creation
-- **`src/mci/utils/`**: Utility functions for error handling, validation, formatting, and other helpers
-
-### Main Entry Point
-
-The main entry point is the `main()` function in `src/mci/mci.py`, which is exported from the package root. This function is a Click command group that serves as the foundation for all CLI commands.
-
-### CLI Usage
-
-To use the CLI tool:
+No installation needed! Run MCI directly using `uvx`:
 
 ```bash
-# Show help and available commands
-uv run mci --help
-
-# Show version
-uv run mci --version
+# Install uv if you haven't already
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
 
-## Bootstrap a Project with `mci install`
+### Your First MCI Project
 
-The `mci install` command initializes a new MCI project with starter configuration files and directory structure.
+1. **Initialize a new project**:
+   ```bash
+   uvx mci install
+   # or
+   uvx mcicli install
+   ```
+   This creates `mci.json` with example tools and `mci/` directory with example toolsets.
 
-### Basic Usage
+2. **List your tools**:
+   ```bash
+   uvx mci list
+   ```
+
+3. **Validate your configuration**:
+   ```bash
+   uvx mci validate
+   ```
+
+4. **Run an MCP server**:
+   ```bash
+   uvx mci run
+   ```
+
+That's it! Your MCI tools are now available via the MCP protocol.
+
+### Optional: Install MCI Globally
+
+If you prefer to install MCI permanently:
 
 ```bash
-# Initialize a new MCI project with JSON configuration (default)
-uv run mci install
+# Install globally with uv
+uv tool install mci-cli
 
-# Initialize with YAML configuration
-uv run mci install --yaml
+# Then use without uvx prefix
+mci install
+mci list
+mci run
 ```
 
-### What Gets Created
+Or install from source:
 
-Running `mci install` creates the following files and directories:
-
-```
-project-root/
-├── mci.json (or mci.yaml)         # Main MCI configuration file
-└── mci/                           # MCI library directory
-    ├── .gitignore                 # Git ignore file (includes mcp/)
-    └── example_toolset.mci.json   # Example toolset with CLI tool
+```bash
+git clone https://github.com/Model-Context-Interface/mci-uvx.git
+cd mci-uvx
+uv sync --all-extras
+uv tool install --editable .
 ```
 
-#### Main Configuration File (`mci.json`)
+## Core Concepts
 
-The default configuration includes an example echo tool:
+### MCI Tools
+
+MCI tools are reusable, declarative tool definitions that can execute different types of operations:
+
+- **Text tools**: Return templated text responses
+- **File tools**: Read and return file contents
+- **CLI tools**: Execute command-line programs
+- **HTTP tools**: Make API requests
+- **MCP tools**: Invoke other MCP servers
+
+### Toolsets
+
+Toolsets are collections of related tools stored in the `mci/` directory. They can be:
+
+- Shared across projects
+- Filtered by tags or names
+- Referenced from your main configuration
+
+### MCP Server Integration
+
+The `mci run` command creates an MCP server that:
+
+- Dynamically loads tools from your MCI schema
+- Serves them via the Model Context Protocol
+- Can be used with MCP-compatible clients (like Claude Desktop)
+- Supports filtering to expose only specific tools
+
+## Available Commands
+
+### `mci install`
+
+Bootstrap a new MCI project with starter configuration.
+
+```bash
+# Create JSON configuration (default)
+uvx mci install
+
+# Create YAML configuration
+uvx mci install --yaml
+```
+
+Creates:
+- `mci.json` (or `mci.yaml`) - Main configuration file
+- `mci/` directory - Library of toolsets
+- `mci/.gitignore` - Excludes generated files
+
+### `mci list`
+
+Display all available tools from your configuration.
+
+```bash
+# List all tools (table format)
+uvx mci list
+
+# List with verbose details
+uvx mci list --verbose
+
+# Filter by tags
+uvx mci list --filter tags:api,database
+
+# Export to JSON
+uvx mci list --format json
+
+# Export to YAML
+uvx mci list --format yaml
+```
+
+**Filter types**:
+- `tags:tag1,tag2` - Include tools with any of these tags
+- `only:tool1,tool2` - Include only specific tools
+- `except:tool1,tool2` - Exclude specific tools
+- `toolsets:ts1,ts2` - Include tools from specific toolsets
+- `without-tags:tag1,tag2` - Exclude tools with these tags
+
+### `mci validate`
+
+Validate your MCI schema for correctness.
+
+```bash
+# Validate default configuration
+uvx mci validate
+
+# Validate specific file
+uvx mci validate --file custom.mci.json
+```
+
+Checks for:
+- Schema structure and syntax
+- Required fields
+- Data types
+- Tool definitions
+- Toolset references
+- MCP command availability (warnings)
+
+### `mci add`
+
+Add toolset references to your schema.
+
+```bash
+# Add a toolset
+uvx mci add weather-tools
+
+# Add with filter
+uvx mci add analytics --filter=only:Tool1,Tool2
+
+# Add with tag filter
+uvx mci add api-tools --filter=tags:api,database
+
+# Add to custom file
+uvx mci add weather-tools --path=custom.mci.json
+```
+
+Automatically preserves your file format (JSON stays JSON, YAML stays YAML).
+
+### `mci run`
+
+Launch an MCP server that dynamically serves your tools.
+
+```bash
+# Run with default configuration
+uvx mci run
+
+# Run with specific file
+uvx mci run --file custom.mci.json
+
+# Run with filtered tools
+uvx mci run --filter tags:production
+
+# Run excluding tools
+uvx mci run --filter except:deprecated_tool
+```
+
+The server:
+- Loads tools from your MCI schema
+- Converts them to MCP format
+- Listens on STDIO for MCP requests
+- Delegates execution back to MCIClient
+
+**Stop the server**: Press `Ctrl+C`
+
+## Example Workflows
+
+### Development Workflow
+
+```bash
+# 1. Create a new project
+uvx mci install
+
+# 2. Add toolsets
+uvx mci add weather-tools
+uvx mci add api-tools --filter=tags:production
+
+# 3. Preview your tools
+uvx mci list --verbose
+
+# 4. Validate everything
+uvx mci validate
+
+# 5. Test with MCP server
+uvx mci run --filter tags:development
+```
+
+### Production Deployment
+
+```bash
+# Validate before deployment
+uvx mci validate
+
+# Run server with only production tools
+uvx mci run --filter tags:production
+
+# Or exclude experimental features
+uvx mci run --filter without-tags:experimental,beta
+```
+
+### Tool Development
+
+```bash
+# Create your schema
+uvx mci install
+
+# Edit mci.json to add your tool
+# (see examples in the generated file)
+
+# Validate your changes
+uvx mci validate
+
+# Test your tool
+uvx mci list --verbose
+uvx mci run
+```
+
+## Supported Execution Types
+
+MCI tools support multiple execution types. Below are examples for each type:
+
+### Text Execution
+
+Returns templated text using `{{props.field}}` and `{{env.VAR}}` syntax.
+
+**Example:**
+```json
+{
+  "name": "greet_user",
+  "description": "Greet a user by name",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "username": {
+        "type": "string",
+        "description": "Name of the user to greet"
+      }
+    },
+    "required": ["username"]
+  },
+  "execution": {
+    "type": "text",
+    "text": "Hello {{props.username}}! Welcome to MCI."
+  }
+}
+```
+
+This tool takes a username as input and returns a personalized greeting message.
+
+### File Execution
+
+Reads and returns file contents, with optional templating support.
+
+**Example:**
+```json
+{
+  "name": "read_config",
+  "description": "Read application configuration file",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "config_path": {
+        "type": "string",
+        "description": "Path to configuration file"
+      }
+    },
+    "required": ["config_path"]
+  },
+  "execution": {
+    "type": "file",
+    "path": "{{props.config_path}}",
+    "enableTemplating": false
+  },
+  "directoryAllowList": ["./configs", "/etc/myapp"]
+}
+```
+
+This tool reads a configuration file from an allowed directory. The `directoryAllowList` ensures files can only be read from safe locations.
+
+### CLI Execution
+
+Executes command-line programs with arguments and flags.
+
+**Example:**
+```json
+{
+  "name": "search_files",
+  "description": "Search for text in files using grep",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "pattern": {
+        "type": "string",
+        "description": "Search pattern"
+      },
+      "directory": {
+        "type": "string",
+        "description": "Directory to search in"
+      },
+      "ignore_case": {
+        "type": "boolean",
+        "description": "Ignore case in search"
+      }
+    },
+    "required": ["pattern", "directory"]
+  },
+  "execution": {
+    "type": "cli",
+    "command": "grep",
+    "args": ["-r", "-n", "{{props.pattern}}"],
+    "flags": {
+      "-i": {
+        "from": "props.ignore_case",
+        "type": "boolean"
+      }
+    },
+    "cwd": "{{props.directory}}",
+    "timeout_ms": 8000
+  }
+}
+```
+
+This tool executes `grep` to search for text in files. The `-i` flag is conditionally added based on the `ignore_case` property.
+
+### HTTP Execution
+
+Makes HTTP requests to external APIs with full header and authentication support.
+
+**Example:**
+```json
+{
+  "name": "get_weather",
+  "description": "Get current weather for a location",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "location": {
+        "type": "string",
+        "description": "City name or coordinates"
+      }
+    },
+    "required": ["location"]
+  },
+  "execution": {
+    "type": "http",
+    "method": "GET",
+    "url": "https://api.example.com/weather",
+    "params": {
+      "location": "{{props.location}}",
+      "units": "metric"
+    },
+    "headers": {
+      "Accept": "application/json",
+      "Authorization": "Bearer {{env.WEATHER_API_KEY}}"
+    },
+    "timeout_ms": 5000
+  }
+}
+```
+
+This tool makes a GET request to a weather API, using an API key from the environment and the location from the input properties.
+
+### MCP Execution
+
+Invokes tools from other MCP servers (for tool composition and chaining).
+
+**Example:**
+```json
+{
+  "name": "analyze_with_ai",
+  "description": "Analyze data using AI MCP server",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "data": {
+        "type": "string",
+        "description": "Data to analyze"
+      }
+    },
+    "required": ["data"]
+  },
+  "execution": {
+    "type": "mcp",
+    "server": "ai_analysis_server",
+    "tool": "analyze_text",
+    "arguments": {
+      "text": "{{props.data}}",
+      "model": "gpt-4"
+    }
+  }
+}
+```
+
+This tool delegates execution to another MCP server's tool, enabling composition of complex workflows.
+
+### Common Features
+
+All execution types support:
+- **Environment variable templating**: Use `{{env.VAR}}` to access environment variables
+- **Property templating**: Use `{{props.field}}` to access input properties
+- **Input validation**: Define schemas with JSON Schema for type safety
+
+## Configuration Files
+
+### Main Configuration (`mci.json` or `mci.yaml`)
 
 ```json
 {
   "schemaVersion": "1.0",
   "metadata": {
-    "name": "Example Project",
-    "description": "Example MCI configuration"
+    "name": "My Project",
+    "description": "My MCI configuration"
   },
   "tools": [
     {
-      "name": "echo_test",
-      "description": "Simple echo test tool",
+      "name": "example_tool",
+      "description": "Example tool",
       "inputSchema": {
         "type": "object",
         "properties": {
-          "message": {
-            "type": "string",
-            "description": "Message to echo"
-          }
-        },
-        "required": ["message"]
+          "message": {"type": "string"}
+        }
       },
       "execution": {
         "type": "text",
@@ -99,1099 +467,24 @@ The default configuration includes an example echo tool:
       }
     }
   ],
-  "toolsets": [],
+  "toolsets": ["my-toolset"],
   "mcp_servers": {}
 }
 ```
 
-#### Example Toolset (`mci/example_toolset.mci.json`)
+### Toolset Files (`mci/*.mci.json`)
 
-The example toolset includes a CLI tool for listing directory contents:
+Toolset files follow the same schema but typically contain focused collections of related tools.
 
-```json
-{
-  "schemaVersion": "1.0",
-  "metadata": {
-    "name": "Example Toolset",
-    "description": "Example MCI toolset with CLI tool"
-  },
-  "tools": [
-    {
-      "name": "list_files",
-      "description": "List files in a directory",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "directory": {
-            "type": "string",
-            "description": "Directory to list files from"
-          }
-        },
-        "required": ["directory"]
-      },
-      "execution": {
-        "type": "cli",
-        "command": "ls",
-        "args": ["-la", "{{props.directory}}"]
-      },
-      "enableAnyPaths": false,
-      "directoryAllowList": ["{{env.PROJECT_ROOT}}"]
-    }
-  ],
-  "toolsets": [],
-  "mcp_servers": {}
-}
-```
+## Environment Variables
 
-### Existing Files Handling
-
-The install command is idempotent and handles existing files gracefully:
-
-- **Existing configuration file**: Skips creation and displays a warning
-- **Existing `.gitignore`**: Updates if `mcp/` entry is missing, otherwise skips
-- **Existing example toolset**: Skips creation and displays a warning
-
-No files are overwritten by default, ensuring safe re-runs.
-
-### Next Steps After Installation
-
-After running `mci install`, you can:
-
-1. **Review the configuration**: Edit `mci.json` or `mci.yaml` to customize your tools
-2. **Validate your setup**: Run `mci validate` (when implemented) to check your configuration
-3. **List available tools**: Run `mci list` (when implemented) to see all defined tools
-4. **Initialize MCIClient**: Use the configuration programmatically:
-
-```python
-from mcipy import MCIClient
-
-# Load the generated configuration
-client = MCIClient(schema_file_path="mci.json")
-
-# List available tools
-tools = client.tools()
-for tool in tools:
-    print(f"{tool.name}: {tool.description}")
-```
-
-### `.gitignore` Configuration
-
-The `./mci/.gitignore` file is automatically created or updated to include:
-
-```
-mcp/
-```
-
-This prevents the `./mci/mcp/` directory (used for MCP server storage) from being committed to version control.
-
-* * *
-
-## List Available Tools with `mci list`
-
-The `mci list` command displays all available tools from your MCI configuration. It provides a preview of the tool context that would be available when running MCP servers, with support for filtering, multiple output formats, and verbose mode.
-
-### Basic Usage
-
-```bash
-# List all tools in table format (default)
-uv run mci list
-
-# List tools from a specific configuration file
-uv run mci list --file custom.mci.json
-
-# List with verbose output showing tags and parameters
-uv run mci list --verbose
-```
-
-### Output Formats
-
-The `list` command supports three output formats:
-
-#### Table Format (Default)
-
-Displays tools in a beautiful Rich terminal table:
-
-```bash
-uv run mci list
-```
-
-Output:
-```
-🧩 Available Tools (3)
-┏━━━━━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ Name        ┃ Source ┃ Description              ┃
-┡━━━━━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-│ get_weather │ main   │ Get current weather      │
-│ analyze     │ main   │ Analyze data             │
-│ send_email  │ custom │ Send email notifications │
-└─────────────┴────────┴──────────────────────────┘
-```
-
-#### JSON Format
-
-Export tools to a timestamped JSON file:
-
-```bash
-uv run mci list --format json
-```
-
-Creates a file like `tools_20241029_143022.json` with structure:
+MCI supports environment variable templating in tool definitions:
 
 ```json
 {
-  "timestamp": "2024-10-29T14:30:22Z",
-  "mci_file": "/path/to/mci.json",
-  "filters_applied": [],
-  "total": 3,
-  "tools": [
-    {
-      "name": "get_weather",
-      "source": "main",
-      "description": "Get current weather"
-    }
-  ]
-}
-```
-
-#### YAML Format
-
-Export tools to a timestamped YAML file:
-
-```bash
-uv run mci list --format yaml
-```
-
-Creates a file like `tools_20241029_143022.yaml`.
-
-### Filtering Tools
-
-The `list` command uses the same filtering logic as the `run` command, ensuring consistency between what is listed and what will be available when running MCP servers.
-
-#### Filter by Tags
-
-Include tools with specific tags (OR logic):
-
-```bash
-# Show only tools tagged with 'api' OR 'database'
-uv run mci list --filter tags:api,database
-```
-
-#### Filter by Tool Names
-
-Include or exclude specific tools by name:
-
-```bash
-# Include only specific tools
-uv run mci list --filter only:get_weather,analyze
-
-# Exclude specific tools
-uv run mci list --filter except:deprecated_tool
-```
-
-#### Filter by Toolsets
-
-Include tools from specific toolsets:
-
-```bash
-uv run mci list --filter toolsets:custom,external
-```
-
-### Verbose Mode
-
-Verbose mode shows additional tool metadata including tags, parameters, and execution type:
-
-```bash
-uv run mci list --verbose
-```
-
-Output:
-```
-🧩 Available Tools (2):
-
-get_weather (main)
-├── Description: Get current weather for a location
-├── Tags: [api, data, weather]
-├── Execution: text
-└── Parameters: location (string), units (string) (optional)
-
-analyze (main)
-├── Description: Analyze data
-├── Tags: [data, ml]
-├── Execution: cli
-└── Parameters: dataset (string), model (string) (optional)
-```
-
-### Combining Options
-
-You can combine filtering, output format, and verbose mode:
-
-```bash
-# Export filtered tools to JSON with verbose metadata
-uv run mci list --filter tags:api --format json --verbose
-
-# List only production tools in verbose table format
-uv run mci list --filter tags:production --verbose
-```
-
-### Use Cases
-
-- **Preview Tools**: See what tools are available before running an MCP server
-- **Debugging**: Verify tool loading and filtering logic
-- **Documentation**: Export tool lists for documentation or sharing
-- **Validation**: Check that toolsets are loaded correctly
-- **Filtering**: Test filter specifications before using them with `mci run`
-
-* * *
-
-## Add Toolset References with `mci add`
-
-The `mci add` command adds toolset references to your MCI schema files. It supports optional filtering and automatically preserves the original file format (JSON stays JSON, YAML stays YAML).
-
-### Basic Usage
-
-```bash
-# Add a toolset without filter
-uv run mci add weather-tools
-
-# Add a toolset with "only" filter
-uv run mci add analytics --filter=only:Tool1,Tool2
-
-# Add a toolset with "tags" filter
-uv run mci add api-tools --filter=tags:api,database
-
-# Add to a custom file
-uv run mci add weather-tools --path=custom.mci.json
-```
-
-### Filter Types
-
-The `add` command supports the same filter types as the MCI schema:
-
-#### Only Filter
-
-Include only specific tools from the toolset:
-
-```bash
-uv run mci add analytics --filter=only:SummarizeData,AnalyzeSentiment
-```
-
-This adds to your schema:
-
-```json
-{
-  "toolsets": [
-    {
-      "name": "analytics",
-      "filter": "only",
-      "filterValue": "SummarizeData,AnalyzeSentiment"
-    }
-  ]
-}
-```
-
-#### Except Filter
-
-Exclude specific tools from the toolset:
-
-```bash
-uv run mci add weather-tools --filter=except:DeprecatedTool
-```
-
-#### Tags Filter
-
-Include tools with specific tags:
-
-```bash
-uv run mci add api-tools --filter=tags:api,database
-```
-
-#### WithoutTags Filter
-
-Exclude tools with specific tags:
-
-```bash
-uv run mci add internal-tools --filter=withoutTags:deprecated,experimental
-```
-
-### Format Preservation
-
-The `add` command automatically detects and preserves your file format:
-
-**JSON files** stay JSON:
-```bash
-# Before (mci.json)
-{
-  "toolsets": []
-}
-
-# Run: mci add weather-tools
-# After (still JSON)
-{
-  "toolsets": ["weather-tools"]
-}
-```
-
-**YAML files** stay YAML:
-```bash
-# Before (mci.yaml)
-toolsets: []
-
-# Run: mci add weather-tools
-# After (still YAML)
-toolsets:
-  - weather-tools
-```
-
-### Duplicate Handling
-
-The `add` command handles duplicates gracefully:
-
-- **Adding an existing toolset**: Updates it with the new filter (if provided)
-- **No duplicates created**: Each toolset appears only once in the array
-
-Example:
-
-```bash
-# Initial state: toolsets: ["weather-tools"]
-uv run mci add weather-tools --filter=tags:api
-
-# Result: toolsets updated, not duplicated
-# toolsets: [{"name": "weather-tools", "filter": "tags", "filterValue": "api"}]
-```
-
-### Auto-discovery
-
-The `add` command automatically finds your MCI file:
-
-1. Looks for `mci.json` in the current directory
-2. Falls back to `mci.yaml` if JSON not found
-3. Falls back to `mci.yml` if YAML not found
-
-To use a custom path:
-
-```bash
-uv run mci add weather-tools --path=./config/custom.mci.json
-```
-
-### Use Cases
-
-- **Add toolsets from library**: Quickly add pre-built toolsets from your `./mci` directory
-- **Configure filtering**: Add toolsets with specific tool subsets
-- **Organize tools**: Group related tools into toolsets for better organization
-- **Update existing references**: Modify filters on existing toolset references
-
-* * *
-
-## Validate MCI Schemas with `mci validate`
-
-The `mci validate` command checks MCI schema files for correctness using mci-py's built-in validation engine. It provides comprehensive validation of schema structure, types, and references, plus additional checks for toolset files and MCP command availability.
-
-### Basic Usage
-
-```bash
-# Validate default mci.json/mci.yaml in current directory
-uv run mci validate
-
-# Validate a specific file
-uv run mci validate --file custom.mci.json
-
-# Validate with environment variables
-uv run mci validate -e API_KEY=test123 -e BASE_URL=https://api.example.com
-```
-
-### What Gets Validated
-
-The validate command performs two levels of checks:
-
-#### 1. Schema Validation (Errors)
-
-These are critical issues that prevent the schema from being used. Validation uses MCIClient from mci-py, which checks:
-
-- **Schema structure**: Correct JSON/YAML syntax
-- **Required fields**: Presence of `schemaVersion` and `metadata`
-- **Data types**: Field values match expected types
-- **Tool definitions**: Valid execution types and input schemas
-- **Toolset references**: Referenced toolsets must exist in the `mci/` directory (validated by MCIClient)
-- **MCP server definitions**: Valid server configurations
-
-If any errors are found, validation fails and the schema cannot be used.
-
-#### 2. Additional Checks (Warnings)
-
-These are non-critical issues that don't prevent the schema from being used:
-
-- **Missing MCP commands**: Checks if MCP server commands are available in PATH
-- Commands not in PATH generate warnings but don't fail validation
-
-### Validation Output
-
-#### Valid Schema
-
-```bash
-uv run mci validate
-```
-
-Output:
-```
-╭───────────── Validation Successful ──────────────╮
-│ ✅ Schema is valid!                              │
-│                                                  │
-│ File: /path/to/mci.json                          │
-╰──────────────────────────────────────────────────╯
-```
-
-#### Schema with Errors
-
-```bash
-uv run mci validate --file invalid.mci.json
-```
-
-Output:
-```
-╭────────── Schema Validation Failed ──────────╮
-│ ❌ Validation Errors                          │
-│                                               │
-│ 1. Failed to load schema: Missing required   │
-│    field 'schemaVersion'                      │
-│                                               │
-╰───────────────────────────────────────────────╯
-
-💡 Fix the errors above and run 'mci validate' again
-```
-
-#### Schema with Warnings
-
-```bash
-uv run mci validate
-```
-
-Output:
-```
-╭──────────────────── Warnings ─────────────────────╮
-│ ⚠️  Validation Warnings                            │
-│                                                   │
-│ 1. MCP server command not found in PATH:         │
-│    weather-mcp (server: weather_server)           │
-│    💡 Install the command or ensure it's in PATH  │
-│                                                   │
-╰───────────────────────────────────────────────────╯
-
-╭───────────── Validation Successful ──────────────╮
-│ ✅ Schema is valid!                              │
-│                                                  │
-│ File: /path/to/mci.json                          │
-╰──────────────────────────────────────────────────╯
-```
-
-### Environment Variables
-
-Use the `-e` or `--env` flag to provide environment variables needed for template substitution:
-
-```bash
-# Single environment variable
-uv run mci validate -e API_KEY=your-api-key
-
-# Multiple environment variables
-uv run mci validate \
-  -e API_KEY=your-api-key \
-  -e BASE_URL=https://api.example.com \
-  -e PROJECT_ROOT=/path/to/project
-```
-
-Environment variables are merged with `os.environ`, so you can also set them in your shell:
-
-```bash
-export API_KEY=your-api-key
-uv run mci validate
-```
-
-### Auto-Discovery
-
-When `--file` is not specified, the validate command searches for:
-1. `mci.json` (first priority)
-2. `mci.yaml` or `mci.yml` (if JSON not found)
-
-in the current directory.
-
-### Common Validation Errors
-
-#### Missing Required Fields
-
-```json
-{
-  "tools": []  // Missing schemaVersion!
-}
-```
-
-Error:
-```
-Failed to load schema: Missing required field 'schemaVersion'
-```
-
-#### Invalid Toolset Reference
-
-```json
-{
-  "schemaVersion": "1.0",
-  "metadata": { "name": "Test" },
-  "tools": [],
-  "toolsets": ["nonexistent"]  // No file at mci/nonexistent.mci.json
-}
-```
-
-Error:
-```
-Toolset not found: nonexistent. Looked for directory or file with .mci.json/.mci.yaml/.mci.yml extension in ./mci
-```
-
-#### Invalid JSON/YAML Syntax
-
-```json
-{
-  "schemaVersion": "1.0"
-  "metadata": {}  // Missing comma!
-}
-```
-
-Error:
-```
-Failed to load schema: Invalid JSON syntax
-```
-
-### Use Cases
-
-- **Pre-deployment validation**: Verify schemas before deploying
-- **CI/CD integration**: Add validation to your build pipeline
-- **Development workflow**: Check schemas after making changes
-- **Troubleshooting**: Get detailed error messages when schemas don't load
-- **Team collaboration**: Ensure all team members use valid schemas
-
-### Exit Codes
-
-- `0`: Schema is valid (warnings are OK)
-- `1`: Validation failed with errors or file not found
-
-### Integration with mci-py
-
-The validate command leverages mci-py's built-in validation:
-
-```python
-from mci.core.config import MCIConfig
-
-# Programmatic validation (same as CLI)
-config = MCIConfig()
-is_valid, error = config.validate_schema("mci.json")
-
-if not is_valid:
-    print(f"Validation error: {error}")
-```
-
-All validation logic is provided by `MCIClient` from mci-py, ensuring consistency between the CLI and programmatic usage.
-
-* * *
-
-## Run MCP Servers with `mci run`
-
-The `mci run` command launches an MCP (Model Context Protocol) server over STDIO that dynamically serves tools from an MCI schema file. The server loads tools using MCIClient, converts them to MCP format, and delegates execution back to MCIClient.
-
-### Basic Usage
-
-```bash
-# Run server with default mci.json/mci.yaml
-uv run mci run
-
-# Run server with specific file
-uv run mci run --file custom.mci.json
-
-# Run server with filtered tools
-uv run mci run --filter tags:api,database
-```
-
-### What the Server Does
-
-The MCP server created by `mci run`:
-
-1. **Loads tools** from the MCI schema using MCIClient (including toolsets and environment variable templating)
-2. **Converts tools** to MCP format using the Stage 8 infrastructure
-3. **Registers tools** with the MCP server for protocol compliance
-4. **Delegates execution** back to MCIClient.execute() for each tool call
-5. **Serves over STDIO** using the MCP Python SDK
-
-### Server Lifecycle
-
-#### Starting the Server
-
-When you run `mci run`, the server:
-
-1. Finds or loads the MCI schema file
-2. Applies filters if specified
-3. Creates an MCP server instance
-4. Registers all tools in MCP format
-5. Starts listening on STDIO for MCP protocol requests
-6. Displays startup information
-
-Output:
-```bash
-$ uv run mci run
-⚡ Starting MCP server...
-📄 Schema: /path/to/mci.json
-
-Press Ctrl+C to stop the server
-```
-
-#### Stopping the Server
-
-The server handles graceful shutdown:
-
-- Press **Ctrl+C** to stop the server
-- The server cleans up resources and exits gracefully
-
-Output:
-```bash
-^C
-⏹ Server stopped by user
-```
-
-### Tool Filtering
-
-The `run` command uses the same filtering logic as the `list` command, ensuring consistency between what is listed and what the server will serve.
-
-#### Filter by Tags
-
-Include tools with specific tags (OR logic):
-
-```bash
-# Serve only tools tagged with 'api' OR 'database'
-uv run mci run --filter tags:api,database
-```
-
-#### Filter by Tool Names
-
-Include or exclude specific tools by name:
-
-```bash
-# Serve only specific tools
-uv run mci run --filter only:get_weather,analyze
-
-# Exclude specific tools
-uv run mci run --filter except:admin_tools,delete_data
-```
-
-#### Filter by Toolsets
-
-Include tools from specific toolsets:
-
-```bash
-# Serve only tools from weather and news toolsets
-uv run mci run --filter toolsets:weather,news
-```
-
-#### Filter Without Tags
-
-Exclude tools with specific tags:
-
-```bash
-# Exclude tools tagged with 'experimental' or 'deprecated'
-uv run mci run --filter without-tags:experimental,deprecated
-```
-
-### Environment Variable Templating
-
-The server automatically collects and passes environment variables to MCIClient for template substitution in tool definitions:
-
-**Tool Definition (mci.json):**
-```json
-{
-  "name": "get_user_info",
-  "execution": {
-    "type": "text",
-    "text": "User: {{env.USER}}, Home: {{env.HOME}}"
-  }
-}
-```
-
-**Running the Server:**
-```bash
-# Environment variables are automatically available
-uv run mci run
-
-# Or set them explicitly before running
-export API_KEY=your-api-key
-export BASE_URL=https://api.example.com
-uv run mci run
-```
-
-### MCP Protocol Support
-
-The server implements the full MCP protocol for tool serving:
-
-#### Tool Listing
-
-The server responds to MCP `tools/list` requests with all registered tools:
-
-```json
-{
-  "tools": [
-    {
-      "name": "get_weather",
-      "description": "Get current weather for a location",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "location": {
-            "type": "string",
-            "description": "City name or coordinates"
-          }
-        },
-        "required": ["location"]
-      }
-    }
-  ]
-}
-```
-
-#### Tool Execution
-
-The server handles MCP `tools/call` requests by delegating to MCIClient:
-
-**Request:**
-```json
-{
-  "method": "tools/call",
-  "params": {
-    "name": "get_weather",
-    "arguments": {
-      "location": "San Francisco"
-    }
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "content": [
-    {
-      "type": "text",
-      "text": "Weather in San Francisco: Sunny, 72°F"
-    }
-  ]
-}
-```
-
-### Use Cases
-
-#### Development and Testing
-
-Test your MCI tools with an MCP client:
-
-```bash
-# Start server with all tools
-uv run mci run
-
-# Start server with only production tools
-uv run mci run --filter tags:production
-
-# Start server with specific test tools
-uv run mci run --filter only:test_tool1,test_tool2
-```
-
-#### Integration with MCP Clients
-
-Use with any MCP-compatible client:
-
-- **Claude Desktop**: Configure as an MCP server
-- **MCP CLI clients**: Connect via STDIO
-- **Custom integrations**: Use the MCP Python SDK to connect
-
-#### Debugging and Development
-
-```bash
-# Test with specific toolsets
-uv run mci run --filter toolsets:api
-
-# Test excluding deprecated tools
-uv run mci run --filter except:old_tool,deprecated_tool
-
-# Test with custom schema during development
-uv run mci run --file dev.mci.json
-```
-
-### Error Handling
-
-The server handles errors gracefully:
-
-#### Schema Not Found
-
-```bash
-$ uv run mci run
-✗ No MCI schema file found. Run 'mci install' to create one or specify --file.
-```
-
-#### Invalid Filter Specification
-
-```bash
-$ uv run mci run --filter invalid-format
-✗ Invalid filter: Invalid filter specification: 'invalid-format'.
-Expected format: 'type:value1,value2,...' where type is one of: only, except, tags, without-tags, toolsets
-```
-
-#### Tool Execution Errors
-
-When a tool fails during execution, the server returns the error in MCP format:
-
-```json
-{
-  "content": [
-    {
-      "type": "text",
-      "text": "Tool execution failed: Connection timeout"
-    }
-  ],
-  "isError": true
-}
-```
-
-### Integration with Existing Commands
-
-The `run` command integrates seamlessly with other MCI commands:
-
-```bash
-# 1. Install MCI schema
-uv run mci install
-
-# 2. Add toolsets
-uv run mci add weather-tools
-uv run mci add api-tools
-
-# 3. List tools to preview what will be served
-uv run mci list
-
-# 4. Validate schema before running
-uv run mci validate
-
-# 5. Run server with filtered tools
-uv run mci run --filter tags:production
-```
-
-### Advanced Usage
-
-#### Custom Server Name
-
-The server is created with the name `mci-dynamic-server` by default. This is the name reported to MCP clients during initialization.
-
-#### Multiple Server Instances
-
-You can run multiple instances with different schemas or filters:
-
-```bash
-# Terminal 1: Serve all tools
-uv run mci run --file all-tools.mci.json
-
-# Terminal 2: Serve only API tools
-uv run mci run --file api-only.mci.json --filter tags:api
-```
-
-#### Programmatic Usage
-
-You can also use the dynamic server programmatically:
-
-```python
-from mci.core.dynamic_server import DynamicMCPServer
-
-# Create and configure server
-server = DynamicMCPServer(
-    schema_path="mci.json",
-    filter_spec="tags:api",
-    env_vars={"API_KEY": "your-key"}
-)
-
-# Create server instance
-instance = await server.create_from_mci_schema(
-    server_name="my-api-server",
-    server_version="1.0.0"
-)
-
-# Start STDIO server
-await server.start_stdio()
-```
-
-### Troubleshooting
-
-#### Server Won't Start
-
-1. **Check schema file exists:**
-   ```bash
-   uv run mci validate
-   ```
-
-2. **Verify filter syntax:**
-   ```bash
-   uv run mci list --filter tags:api  # Test filter
-   ```
-
-3. **Check for errors in schema:**
-   ```bash
-   uv run mci validate --file mci.json
-   ```
-
-#### Tools Not Appearing
-
-1. **List tools to verify they're loaded:**
-   ```bash
-   uv run mci list
-   ```
-
-2. **Check filter is working as expected:**
-   ```bash
-   uv run mci list --filter tags:api
-   ```
-
-3. **Verify toolsets are loaded:**
-   ```bash
-   uv run mci validate  # Checks toolset files exist
-   ```
-
-#### Tool Execution Fails
-
-1. **Check environment variables:**
-   ```bash
-   echo $API_KEY  # Verify env vars are set
-   ```
-
-2. **Test tool execution with mci-py directly:**
-   ```python
-   from mcipy import MCIClient
-   client = MCIClient(schema_file_path="mci.json")
-   result = client.execute("tool_name", properties={"param": "value"})
-   ```
-
-* * *
-
-All further development stages build on this foundational structure:
-- **Stage 1**: ✅ Project Setup & Core Dependencies
-- **Stage 2**: ✅ Configuration & File Discovery
-- **Stage 3**: ✅ CLI Command: `mci install`
-- **Stage 4**: ✅ MCI-PY Integration & Tool Loading
-- **Stage 5**: ✅ CLI Command: `mci list`
-- **Stage 6**: ✅ CLI Command: `mci validate`
-- **Stage 7**: ✅ CLI Command: `mci add`
-- **Stage 8**: ✅ MCP Server Creation Infrastructure
-- **Stage 9**: ✅ CLI Command: `mci run` (STDIO MCP Server)
-- **Stage 10**: Error Handling, Documentation & Final Polish
-
-* * *
-
-## MCI-PY Integration & Tool Loading
-
-The MCI CLI tool integrates with the **mci-py** library for robust loading and management of MCI tools. All tool loading, filtering, and schema operations are delegated to `MCIClient` from mci-py, ensuring consistency with the upstream adapter and future-proof functionality.
-
-### Key Components
-
-#### MCIClientWrapper
-
-The `MCIClientWrapper` class provides a CLI-friendly interface to `MCIClient` from mci-py:
-
-```python
-from mci.core.mci_client import MCIClientWrapper
-
-# Load MCI schema
-wrapper = MCIClientWrapper("mci.json")
-
-# Get all tools
-tools = wrapper.get_tools()
-for tool in tools:
-    print(f"{tool.name}: {tool.description}")
-
-# Filter tools
-api_tools = wrapper.filter_tags(["api"])
-safe_tools = wrapper.filter_except(["deprecated_tool"])
-specific_tools = wrapper.filter_only(["tool1", "tool2"])
-```
-
-#### Tool Filtering
-
-The `ToolManager` class parses CLI filter specifications and applies filters using MCIClient methods:
-
-```python
-from mci.core.mci_client import MCIClientWrapper
-from mci.core.tool_manager import ToolManager
-
-wrapper = MCIClientWrapper("mci.json")
-
-# Apply filter specifications
-api_tools = ToolManager.apply_filter_spec(wrapper, "tags:api,database")
-non_deprecated = ToolManager.apply_filter_spec(wrapper, "without-tags:deprecated")
-selected_tools = ToolManager.apply_filter_spec(wrapper, "only:tool1,tool2,tool3")
-```
-
-**Supported Filter Types:**
-- `only:tool1,tool2,...` - Include only specified tools by name
-- `except:tool1,tool2,...` - Exclude specified tools by name
-- `tags:tag1,tag2,...` - Include tools with any of these tags (OR logic)
-- `without-tags:tag1,tag2,...` - Exclude tools with any of these tags (OR logic)
-- `toolsets:toolset1,toolset2,...` - Include tools from specified toolsets
-
-### MCIClient Delegation
-
-All tool operations delegate to `MCIClient` from mci-py:
-
-- **Schema parsing**: `MCIClient` validates and loads MCI schemas
-- **Tool loading**: Uses Pydantic models from mci-py for type-safe tool definitions
-- **Filtering**: Leverages built-in methods: `only()`, `without()`, `tags()`, `withoutTags()`, `toolsets()`
-- **Environment variables**: Template substitution via `MCIClient`
-- **Validation**: Schema validation performed by `MCIClient` during initialization
-
-No filtering or validation logic is reimplemented in the CLI. The wrapper focuses on:
-- CLI-specific error handling
-- Filter specification parsing
-- Output formatting for terminal display
-
-### Error Handling
-
-The `ErrorHandler` class formats `MCIClientError` exceptions for CLI-friendly display:
-
-```python
-from mci.core.mci_client import MCIClientWrapper
-from mci.utils.error_handler import ErrorHandler
-from mcipy import MCIClientError
-
-try:
-    wrapper = MCIClientWrapper("nonexistent.mci.json")
-except MCIClientError as e:
-    # Format error for CLI display
-    formatted_error = ErrorHandler.format_mci_client_error(e)
-    print(formatted_error)
-```
-
-Error messages include:
-- Clear error descriptions
-- Helpful suggestions for resolution
-- Visual indicators (emoji) for better readability
-
-### Environment Variable Support
-
-```python
-from mci.core.mci_client import MCIClientWrapper
-
-# Load with environment variables for template substitution
-env_vars = {
-    "API_KEY": "your-api-key",
-    "BASE_URL": "https://api.example.com",
-    "PROJECT_ROOT": "/path/to/project"
-}
-
-wrapper = MCIClientWrapper("mci.json", env_vars=env_vars)
-tools = wrapper.get_tools()
-```
-
-Environment variables are used in tool definitions:
-```json
-{
-  "name": "api_tool",
   "execution": {
     "type": "http",
-    "url": "{{env.BASE_URL}}/endpoint",
+    "url": "{{env.BASE_URL}}/api/endpoint",
     "headers": {
       "Authorization": "Bearer {{env.API_KEY}}"
     }
@@ -1199,319 +492,119 @@ Environment variables are used in tool definitions:
 }
 ```
 
-### Using Pydantic Models
+### Setting Environment Variables for MCP Clients
 
-All tool objects are Pydantic models from mci-py:
+When running MCI as an MCP server from clients like Claude Desktop or VS Code, configure environment variables in the client's settings:
 
-```python
-from mci.core.mci_client import MCIClientWrapper
-
-wrapper = MCIClientWrapper("mci.json")
-tools = wrapper.get_tools()
-
-for tool in tools:
-    # Access Pydantic model properties
-    print(f"Name: {tool.name}")
-    print(f"Description: {tool.description}")
-    print(f"Tags: {tool.tags}")
-    print(f"Input Schema: {tool.inputSchema}")
-    print(f"Execution Type: {tool.execution.type}")
-```
-
-### YAML Support
-
-Both JSON and YAML schema files are supported:
-
-```python
-from mci.core.mci_client import MCIClientWrapper
-
-# Load JSON schema
-json_wrapper = MCIClientWrapper("mci.json")
-
-# Load YAML schema
-yaml_wrapper = MCIClientWrapper("mci.yaml")
-
-# Both work identically
-tools = json_wrapper.get_tools()
-```
-
-* * *
-
-## Configuration & File Discovery
-
-The MCI CLI tool includes robust configuration file discovery and validation functionality.
-
-### File Discovery
-
-The `MCIFileFinder` class provides methods to locate MCI configuration files in a directory:
-
-```python
-from mci.core.file_finder import MCIFileFinder
-
-# Find MCI configuration file (mci.json or mci.yaml)
-finder = MCIFileFinder()
-config_file = finder.find_mci_file("./my_project")
-
-if config_file:
-    print(f"Found: {config_file}")
-else:
-    print("No MCI configuration file found")
-```
-
-**File Priority**: When both `mci.json` and `mci.yaml` exist in the same directory, JSON format is prioritized.
-
-**Supported Formats**:
-- `mci.json` (preferred)
-- `mci.yaml`
-- `mci.yml`
-
-### File Format Detection
-
-```python
-from mci.core.file_finder import MCIFileFinder
-
-finder = MCIFileFinder()
-file_format = finder.get_file_format("./mci.json")
-print(file_format)  # Output: "json"
-
-file_format = finder.get_file_format("./mci.yaml")
-print(file_format)  # Output: "yaml"
-```
-
-### Configuration Loading
-
-The `MCIConfig` class uses `MCIClient` from mci-py to load and validate MCI configuration files:
-
-```python
-from mci.core.config import MCIConfig
-from mcipy import MCIClientError
-
-# Load and validate configuration
-config = MCIConfig()
-try:
-    client = config.load("mci.json")
-    tools = client.tools()
-    print(f"Loaded {len(tools)} tools")
-except MCIClientError as e:
-    print(f"Schema invalid: {e}")
-```
-
-### Schema Validation
-
-```python
-from mci.core.config import MCIConfig
-
-# Validate schema without loading
-config = MCIConfig()
-is_valid, error = config.validate_schema("mci.json")
-
-if is_valid:
-    print("Schema is valid")
-else:
-    print(f"Validation failed: {error}")
-```
-
-### Environment Variables
-
-Support for environment variable substitution in MCI schemas:
-
-```python
-from mci.core.config import MCIConfig
-
-# Load with environment variables
-config = MCIConfig()
-env_vars = {
-    "API_KEY": "your-api-key",
-    "BASE_URL": "https://api.example.com"
-}
-client = config.load("mci.json", env_vars)
-```
-
-### Error Handling Strategy
-
-The configuration system provides user-friendly error messages by leveraging mci-py's built-in validation:
-
-1. **MCIClient Validation**: Schema validation is performed by `MCIClient` during initialization
-2. **Error Extraction**: Error messages from `MCIClientError` are extracted and presented to users
-3. **File Not Found**: Specific handling for missing configuration files
-4. **Malformed Files**: Detection of JSON/YAML parsing errors
-
-Example error handling:
-
-```python
-from mci.core.config import MCIConfig
-from mcipy import MCIClientError
-
-config = MCIConfig()
-is_valid, error = config.validate_schema("path/to/mci.json")
-
-if not is_valid:
-    # Error message contains details from MCIClient validation
-    print(f"Configuration error: {error}")
-    # Take corrective action
-```
-
-* * *
-
-## MCP Server Creation Infrastructure
-
-The MCI CLI provides infrastructure for creating MCP (Model Context Protocol) servers that dynamically serve tools from MCI schemas. This allows you to expose MCI tools via the MCP protocol, making them available to MCP-compatible clients.
-
-### Overview
-
-The MCP server creation system consists of three main components:
-
-1. **MCIToolConverter**: Converts MCI tool definitions to MCP tool format
-2. **MCPServerBuilder**: Creates and configures MCP servers with MCI tools
-3. **ServerInstance**: Manages server lifecycle and delegates execution to MCIClient
-
-### Key Features
-
-- **Dynamic Tool Loading**: Tools are loaded from MCI schemas using MCIClient and kept in memory
-- **Automatic Conversion**: MCI tools are automatically converted to MCP-compatible tool definitions
-- **Execution Delegation**: Tool execution is delegated back to MCIClient, ensuring consistency
-- **Flexible Filtering**: Use MCIClient's filtering capabilities to selectively expose tools
-- **MCP Protocol Compliance**: Full support for MCP tool listing and execution protocols
-
-### Architecture
-
-```
-MCI Schema → MCIClient → MCPServerBuilder → MCP Server → STDIO
-                ↓              ↓                ↓
-            Tools loaded   Converted      Tool execution
-            from schema    to MCP format  via MCIClient
-```
-
-### Usage Example
-
-```python
-from mcipy import MCIClient
-from mci.core.mcp_server import MCPServerBuilder, ServerInstance
-
-# Step 1: Load MCI schema
-mci_client = MCIClient(schema_file_path="mci.json")
-tools = mci_client.tools()
-
-# Step 2: Create MCP server
-builder = MCPServerBuilder(mci_client)
-server = await builder.create_server("my-mci-server", "1.0.0")
-
-# Step 3: Register tools
-await builder.register_all_tools(server, tools)
-
-# Step 4: Create and start server instance
-instance = ServerInstance(server, mci_client)
-await instance.start(stdio=True)  # Runs server on STDIO
-```
-
-### Tool Conversion
-
-MCI tools are automatically converted to MCP tool format:
-
-**MCI Tool:**
+**Claude Desktop Example** (`claude_desktop_config.json`):
 ```json
 {
-  "name": "greet",
-  "description": "Greet a person by name",
-  "inputSchema": {
-    "type": "object",
-    "properties": {
-      "name": {"type": "string"}
+  "mcpServers": {
+    "mci-tools": {
+      "command": "uvx",
+      "args": ["mci", "run"],
+      "cwd": "/path/to/your/project",
+      "env": {
+        "API_KEY": "your-api-key",
+        "BASE_URL": "https://api.example.com",
+        "PROJECT_ROOT": "/path/to/your/project"
+      }
     }
-  },
-  "execution": {
-    "type": "text",
-    "text": "Hello, {{props.name}}!"
   }
 }
 ```
 
-**MCP Tool (after conversion):**
-```python
-types.Tool(
-    name="greet",
-    description="Greet a person by name",
-    inputSchema={
-        "type": "object",
-        "properties": {
-            "name": {"type": "string"}
-        }
+**VS Code Example** (`.vscode/settings.json`):
+```json
+{
+  "mcp.servers": {
+    "mci-tools": {
+      "command": "uvx",
+      "args": ["mci", "run"],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "API_KEY": "your-api-key",
+        "BASE_URL": "https://api.example.com",
+        "PROJECT_ROOT": "${workspaceFolder}"
+      }
     }
-)
+  }
+}
 ```
 
-### Filtering Tools
+**Running Standalone** (without MCP client):
 
-You can use MCIClient's filtering methods to selectively expose tools:
+If you're running the MCP server directly in a terminal, set environment variables first:
 
-```python
-# Expose only API-related tools
-api_tools = mci_client.tags(["api"])
-await builder.register_all_tools(server, api_tools)
-
-# Expose specific tools by name
-specific_tools = mci_client.only(["get_weather", "get_forecast"])
-await builder.register_all_tools(server, specific_tools)
-
-# Exclude certain tools
-safe_tools = mci_client.without(["dangerous_operation"])
-await builder.register_all_tools(server, safe_tools)
+```bash
+export API_KEY=your-api-key
+export BASE_URL=https://api.example.com
+uvx mci run
+```
 ```
 
-### Tool Execution
+## Integration with MCP Clients
 
-When an MCP client calls a tool, the server:
+The `mci run` command creates an MCP-compliant server that can be used with:
 
-1. Receives the tool call via MCP protocol
-2. Delegates execution to `MCIClient.execute()`
-3. Converts the result to MCP TextContent format
-4. Returns the response to the client
+- **Claude Desktop**: Configure as an MCP server in settings
+- **MCP CLI tools**: Connect via STDIO transport
+- **Custom integrations**: Use the MCP Python SDK
 
-This ensures that all execution logic remains in MCIClient, avoiding duplication.
+Example Claude Desktop configuration:
 
-### Server Lifecycle
+```json
+{
+  "mcpServers": {
+    "mci-tools": {
+      "command": "uvx",
+      "args": ["mci", "run"],
+      "cwd": "/path/to/your/project"
+    }
+  }
+}
+```
 
-The `ServerInstance` class manages the server lifecycle:
+## Documentation
 
-- **Startup**: Initialize MCP protocol handlers and prepare for requests
-- **Runtime**: Handle tool listing and execution requests
-- **Shutdown**: Clean up resources (handled by async context manager)
+- **[Development Guide](development.md)** - Setup, testing, and contribution workflow
+- **[Technical Architecture](docs/architecture.md)** - Project structure and design decisions
+- **[Implementation Plan](PLAN.md)** - Full development roadmap
+- **[Product Requirements](PRD.md)** - Project goals and specifications
+- **[Installation Guide](installation.md)** - Detailed installation instructions
+- **[Publishing Guide](publishing.md)** - How to publish to PyPI
 
-### Advanced Features
+## Key Features
 
-For advanced MCP server features, including:
+✨ **Declarative Tool Definitions** - Define tools once, use everywhere
 
-- Lifespan management with resource initialization/cleanup
-- Structured output support
-- Direct `CallToolResult` returns with `_meta` field
-- Low-level server API usage
+🔌 **Multiple Execution Types** - Text, file, CLI, HTTP, and MCP support
 
-See [mcp-server-docs.md](mcp-server-docs.md) for comprehensive documentation.
+🎯 **Flexible Filtering** - Filter by tags, names, or toolsets
 
-### Integration with CLI
+📦 **Toolset Management** - Organize and reuse tool collections
 
-The MCP server infrastructure is designed to be used by the `mci run` command (Stage 9), which will:
+🔄 **Dynamic MCP Servers** - Instantly turn MCI schemas into MCP servers
 
-1. Load tools from an MCI schema file
-2. Create an MCP server with those tools
-3. Start the server on STDIO
-4. Handle incoming MCP protocol requests
+🌍 **Environment Templating** - Use environment variables in tool definitions
 
-This allows users to instantly turn any MCI schema into a running MCP server.
+✅ **Built-in Validation** - Comprehensive schema validation
 
-* * *
+📊 **Multiple Output Formats** - JSON, YAML, and table displays
 
-## Project Docs
+## Contributing
 
-For how to install uv and Python, see [installation.md](installation.md).
+Contributions are welcome! Please see [development.md](development.md) for:
 
-For development workflows, see [development.md](development.md).
+- Setting up your development environment
+- Running tests and linters
+- Building the project
+- Submitting pull requests
 
-For the full implementation plan, see [PLAN.md](PLAN.md).
+## License
 
-For instructions on publishing to PyPI, see [publishing.md](publishing.md).
+MIT License - see LICENSE file for details
 
-* * *
+---
 
-*This project was built from
-[simple-modern-uv](https://github.com/jlevy/simple-modern-uv).*
+*This project was built from [simple-modern-uv](https://github.com/jlevy/simple-modern-uv).*
