@@ -218,8 +218,8 @@ The `mci.yaml` template should have the equivalent YAML structure.
 - `testsManual/test_install.py` - Run install in real directory, verify all files
 
 ### Success Criteria
-- [ ] `uvx mci install` creates mci.json with proper structure
-- [ ] `uvx mci install --yaml` creates mci.yaml
+- [ ] `uvx mcix install` creates mci.json with proper structure
+- [ ] `uvx mcix install --yaml` creates mci.yaml
 - [ ] Creates ./mci directory with example.mci.json
 - [ ] Creates ./mci/.gitignore with ./mcp entry
 - [ ] Handles existing files gracefully
@@ -371,11 +371,11 @@ src/mci/cli/
 - `testsManual/test_list_output.py` - Run list command, verify table output visually
 
 ### Success Criteria
-- [ ] `uvx mci list` displays table of tools
-- [ ] `uvx mci list --format=json` creates timestamped JSON file
-- [ ] `uvx mci list --format=yaml` creates timestamped YAML file
-- [ ] `uvx mci list --verbose` shows detailed tool info
-- [ ] `uvx mci list --filter=tags:Tag1,Tag2` filters correctly
+- [ ] `uvx mcix list` displays table of tools
+- [ ] `uvx mcix list --format=json` creates timestamped JSON file
+- [ ] `uvx mcix list --format=yaml` creates timestamped YAML file
+- [ ] `uvx mcix list --verbose` shows detailed tool info
+- [ ] `uvx mcix list --filter=tags:Tag1,Tag2` filters correctly
 - [ ] Uses same tool loading/filtering logic as run command
 - [ ] Beautiful output with Rich tables
 - [ ] All tests pass
@@ -440,8 +440,8 @@ src/mci/core/
 - `testsManual/test_validate.py` - Run validate on real schemas, check output
 
 ### Success Criteria
-- [ ] `uvx mci validate` checks default mci.json/mci.yaml using MCIClient
-- [ ] `uvx mci validate --file=custom.mci.json` checks custom file
+- [ ] `uvx mcix validate` checks default mci.json/mci.yaml using MCIClient
+- [ ] `uvx mcix validate --file=custom.mci.json` checks custom file
 - [ ] Uses MCIClient for schema validation (no reimplementation)
 - [ ] Shows warnings for missing toolsets and MCP commands
 - [ ] Beautiful, color-coded output using Rich
@@ -495,9 +495,9 @@ src/mci/core/
 - `testsManual/test_add.py` - Add toolsets to real files, verify changes
 
 ### Success Criteria
-- [ ] `uvx mci add weather-tools` adds toolset to mci.json
-- [ ] `uvx mci add analytics --filter=only:Tool1,Tool2` adds with filter
-- [ ] `uvx mci add toolset --path=custom.mci.json` modifies custom file
+- [ ] `uvx mcix add weather-tools` adds toolset to mci.json
+- [ ] `uvx mcix add analytics --filter=only:Tool1,Tool2` adds with filter
+- [ ] `uvx mcix add toolset --path=custom.mci.json` modifies custom file
 - [ ] Preserves file format (JSON stays JSON, YAML stays YAML)
 - [ ] Handles duplicates gracefully
 - [ ] All tests pass
@@ -637,21 +637,21 @@ src/mci/core/
 - `testsManual/test_run_stdio.py` - Run actual MCP server, connect with MCP client
 
 ### Success Criteria
-- [ ] `uvx mci run` starts MCP server on STDIO
+- [ ] `uvx mcix run` starts MCP server on STDIO
 - [ ] Uses MCIClient to fetch tools from MCI schema
 - [ ] Converts MCI tools to MCP tool format
 - [ ] Server responds to MCP protocol requests (list_tools)
 - [ ] Tool execution requests delegate to MCI's execute()
-- [ ] `uvx mci run --file=custom.mci.json` uses custom file
-- [ ] `uvx mci run --filter=tags:Tag1,Tag2` filters tools correctly
+- [ ] `uvx mcix run --file=custom.mci.json` uses custom file
+- [ ] `uvx mcix run --filter=tags:Tag1,Tag2` filters tools correctly
 - [ ] Graceful shutdown on Ctrl+C
 - [ ] All tests pass
 - `testsManual/test_run_stdio.py` - Run actual MCP server, connect with MCP client
 
 ### Success Criteria
-- [ ] `uvx mci run` starts MCP server on STDIO
-- [ ] `uvx mci run --file=custom.mci.json` uses custom file
-- [ ] `uvx mci run --filter=tags:Tag1,Tag2` filters tools
+- [ ] `uvx mcix run` starts MCP server on STDIO
+- [ ] `uvx mcix run --file=custom.mci.json` uses custom file
+- [ ] `uvx mcix run --filter=tags:Tag1,Tag2` filters tools
 - [ ] Server responds to MCP protocol requests
 - [ ] Tools execute correctly via mci-py
 - [ ] Graceful shutdown on Ctrl+C

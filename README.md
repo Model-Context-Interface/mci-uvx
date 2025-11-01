@@ -15,25 +15,23 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 1. **Initialize a new project**:
    ```bash
-   uvx mci install
-   # or
-   uvx mcicli install
+   uvx mcix install
    ```
    This creates `mci.json` with example tools and `mci/` directory with example toolsets.
 
 2. **List your tools**:
    ```bash
-   uvx mci list
+   uvx mcix list
    ```
 
 3. **Validate your configuration**:
    ```bash
-   uvx mci validate
+   uvx mcix validate
    ```
 
 4. **Run an MCP server**:
    ```bash
-   uvx mci run
+   uvx mcix run
    ```
 
 That's it! Your MCI tools are now available via the MCP protocol.
@@ -44,12 +42,12 @@ If you prefer to install MCI permanently:
 
 ```bash
 # Install globally with uv
-uv tool install mci-cli
+uv tool install mcix
 
 # Then use without uvx prefix
-mci install
-mci list
-mci run
+mcix install
+mcix list
+mcix run
 ```
 
 Or install from source:
@@ -98,10 +96,10 @@ Bootstrap a new MCI project with starter configuration.
 
 ```bash
 # Create JSON configuration (default)
-uvx mci install
+uvx mcix install
 
 # Create YAML configuration
-uvx mci install --yaml
+uvx mcix install --yaml
 ```
 
 Creates:
@@ -115,19 +113,19 @@ Display all available tools from your configuration.
 
 ```bash
 # List all tools (table format)
-uvx mci list
+uvx mcix list
 
 # List with verbose details
-uvx mci list --verbose
+uvx mcix list --verbose
 
 # Filter by tags
-uvx mci list --filter tags:api,database
+uvx mcix list --filter tags:api,database
 
 # Export to JSON
-uvx mci list --format json
+uvx mcix list --format json
 
 # Export to YAML
-uvx mci list --format yaml
+uvx mcix list --format yaml
 ```
 
 **Filter types**:
@@ -143,10 +141,10 @@ Validate your MCI schema for correctness.
 
 ```bash
 # Validate default configuration
-uvx mci validate
+uvx mcix validate
 
 # Validate specific file
-uvx mci validate --file custom.mci.json
+uvx mcix validate --file custom.mci.json
 ```
 
 Checks for:
@@ -163,16 +161,16 @@ Add toolset references to your schema.
 
 ```bash
 # Add a toolset
-uvx mci add weather-tools
+uvx mcix add weather-tools
 
 # Add with filter
-uvx mci add analytics --filter=only:Tool1,Tool2
+uvx mcix add analytics --filter=only:Tool1,Tool2
 
 # Add with tag filter
-uvx mci add api-tools --filter=tags:api,database
+uvx mcix add api-tools --filter=tags:api,database
 
 # Add to custom file
-uvx mci add weather-tools --path=custom.mci.json
+uvx mcix add weather-tools --path=custom.mci.json
 ```
 
 Automatically preserves your file format (JSON stays JSON, YAML stays YAML).
@@ -183,16 +181,16 @@ Launch an MCP server that dynamically serves your tools.
 
 ```bash
 # Run with default configuration
-uvx mci run
+uvx mcix run
 
 # Run with specific file
-uvx mci run --file custom.mci.json
+uvx mcix run --file custom.mci.json
 
 # Run with filtered tools
-uvx mci run --filter tags:production
+uvx mcix run --filter tags:production
 
 # Run excluding tools
-uvx mci run --filter except:deprecated_tool
+uvx mcix run --filter except:deprecated_tool
 ```
 
 The server:
@@ -209,50 +207,50 @@ The server:
 
 ```bash
 # 1. Create a new project
-uvx mci install
+uvx mcix install
 
 # 2. Add toolsets
-uvx mci add weather-tools
-uvx mci add api-tools --filter=tags:production
+uvx mcix add weather-tools
+uvx mcix add api-tools --filter=tags:production
 
 # 3. Preview your tools
-uvx mci list --verbose
+uvx mcix list --verbose
 
 # 4. Validate everything
-uvx mci validate
+uvx mcix validate
 
 # 5. Test with MCP server
-uvx mci run --filter tags:development
+uvx mcix run --filter tags:development
 ```
 
 ### Production Deployment
 
 ```bash
 # Validate before deployment
-uvx mci validate
+uvx mcix validate
 
 # Run server with only production tools
-uvx mci run --filter tags:production
+uvx mcix run --filter tags:production
 
 # Or exclude experimental features
-uvx mci run --filter without-tags:experimental,beta
+uvx mcix run --filter without-tags:experimental,beta
 ```
 
 ### Tool Development
 
 ```bash
 # Create your schema
-uvx mci install
+uvx mcix install
 
 # Edit mci.json to add your tool
 # (see examples in the generated file)
 
 # Validate your changes
-uvx mci validate
+uvx mcix validate
 
 # Test your tool
-uvx mci list --verbose
-uvx mci run
+uvx mcix list --verbose
+uvx mcix run
 ```
 
 ## Supported Execution Types
@@ -502,7 +500,7 @@ When running MCI as an MCP server from clients like Claude Desktop or VS Code, c
   "mcpServers": {
     "mci-tools": {
       "command": "uvx",
-      "args": ["mci", "run"],
+      "args": ["mcix", "run"],
       "cwd": "/path/to/your/project",
       "env": {
         "API_KEY": "your-api-key",
@@ -520,7 +518,7 @@ When running MCI as an MCP server from clients like Claude Desktop or VS Code, c
   "mcp.servers": {
     "mci-tools": {
       "command": "uvx",
-      "args": ["mci", "run"],
+      "args": ["mcix", "run"],
       "cwd": "${workspaceFolder}",
       "env": {
         "API_KEY": "your-api-key",
@@ -539,7 +537,7 @@ If you're running the MCP server directly in a terminal, set environment variabl
 ```bash
 export API_KEY=your-api-key
 export BASE_URL=https://api.example.com
-uvx mci run
+uvx mcix run
 ```
 ```
 
@@ -558,7 +556,7 @@ Example Claude Desktop configuration:
   "mcpServers": {
     "mci-tools": {
       "command": "uvx",
-      "args": ["mci", "run"],
+      "args": ["mcix", "run"],
       "cwd": "/path/to/your/project"
     }
   }

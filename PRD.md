@@ -30,15 +30,15 @@ The CLI integrates **`mci-py`** for schema parsing, validation, and execution lo
 
 ## 4. Core Commands
 
-### 🏃‍♂️ `uvx mci run`
+### 🏃‍♂️ `uvx mcix run`
 **Purpose:** Launch a dynamic MCP server using the defined MCI configuration.
 
 #### Usage Examples
 ```bash
-uvx mci run
-uvx mci run --file=./tools.mci.json
-uvx mci run --filter=tags:Tag1,Tag2
-uvx mci run --file=./tools.mci.json --filter=tags:Tag1,Tag2
+uvx mcix run
+uvx mcix run --file=./tools.mci.json
+uvx mcix run --filter=tags:Tag1,Tag2
+uvx mcix run --file=./tools.mci.json --filter=tags:Tag1,Tag2
 ```
 
 #### Behavior
@@ -69,13 +69,13 @@ uvx mci run --file=./tools.mci.json --filter=tags:Tag1,Tag2
 
 ---
 
-### ⚙️ `uvx mci install`
+### ⚙️ `uvx mcix install`
 **Purpose:** Initialize a new MCI implementation structure in project root.
 
 #### Usage Examples
 ```bash
-uvx mci install
-uvx mci install --yaml
+uvx mcix install
+uvx mcix install --yaml
 ```
 
 #### Behavior
@@ -120,13 +120,13 @@ uvx mci install --yaml
 
 ---
 
-### ➕ `uvx mci add <toolsetName>`
+### ➕ `uvx mcix add <toolsetName>`
 **Purpose:** Add a toolset reference to the main MCI file.
 
 #### Usage Examples
 ```bash
-uvx mci add weather-tools
-uvx mci add analytics --filter=only:SummarizeData,AnalyzeSentiment
+uvx mcix add weather-tools
+uvx mcix add analytics --filter=only:SummarizeData,AnalyzeSentiment
 ```
 
 #### Behavior
@@ -162,16 +162,16 @@ to:
 
 ---
 
-### 📋 `uvx mci list`
+### 📋 `uvx mcix list`
 **Purpose:** Display all available tools with applied filters from the current MCI configuration. It tests the `run` method to check what context will be returned on MCP run.
 
 #### Usage Examples
 ```bash
-uvx mci list
-uvx mci list --file=./tools.mci.json
-uvx mci list --filter=tags:Tag1,Tag2
-uvx mci list --format=json
-uvx mci list --format=yaml --verbose
+uvx mcix list
+uvx mcix list --file=./tools.mci.json
+uvx mcix list --filter=tags:Tag1,Tag2
+uvx mcix list --format=json
+uvx mcix list --format=yaml --verbose
 ```
 
 #### Behavior
@@ -234,10 +234,10 @@ When using `--format=json` or `--format=yaml`, the command creates a timestamped
 
 ```bash
 # Creates tools_20241029_143022.json
-uvx mci list --format=json
+uvx mcix list --format=json
 
 # Creates tools_20241029_143022.yaml  
-uvx mci list --format=yaml --verbose
+uvx mcix list --format=yaml --verbose
 ```
 
 **File Content Example (JSON):**
@@ -263,13 +263,13 @@ The generated filename format is: `tools_YYYYMMDD_HHMMSS.{json|yaml}`
 
 ---
 
-### ✅ `uvx mci validate`
+### ✅ `uvx mcix validate`
 **Purpose:** Validate MCI schema files for syntax, structure, and semantic correctness.
 
 #### Usage Examples
 ```bash
-uvx mci validate
-uvx mci validate --file=./tools.mci.json
+uvx mcix validate
+uvx mcix validate --file=./tools.mci.json
 ```
 
 #### Behavior
