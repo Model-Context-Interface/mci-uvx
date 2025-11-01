@@ -363,7 +363,22 @@ wheels = [
 ]
 
 [[package]]
-name = "mci"
+name = "mci-py"
+version = "1.1.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "mcp", extra = ["cli"] },
+    { name = "pydantic" },
+    { name = "pyyaml" },
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/fe/e3/18ccff511a9c83409d3b5ff6252727c3561b47f4a2e78234ee00abb64855/mci_py-1.1.1.tar.gz", hash = "sha256:f502269cf8deafad899eab1664d4c5d6f8637f91e1b6bce7c75f9f7ca38290b3", size = 258270, upload-time = "2025-10-29T15:57:24.179Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c8/29/f6615973ade2e1aa04c9c2dc432c03715627220ef9012615260a9f082d4e/mci_py-1.1.1-py3-none-any.whl", hash = "sha256:b8fbc74bd41aeec269766afbe7c430847f938c7865d338f9ab04e4b562ffb1f2", size = 47008, upload-time = "2025-10-29T15:57:23.177Z" },
+]
+
+[[package]]
+name = "mcicli"
 source = { editable = "." }
 dependencies = [
     { name = "click" },
@@ -406,21 +421,6 @@ dev = [
     { name = "pytest-sugar", specifier = ">=1.0.0" },
     { name = "rich", specifier = ">=14.0.0" },
     { name = "ruff", specifier = ">=0.11.9" },
-]
-
-[[package]]
-name = "mci-py"
-version = "1.1.1"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "mcp", extra = ["cli"] },
-    { name = "pydantic" },
-    { name = "pyyaml" },
-    { name = "requests" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/fe/e3/18ccff511a9c83409d3b5ff6252727c3561b47f4a2e78234ee00abb64855/mci_py-1.1.1.tar.gz", hash = "sha256:f502269cf8deafad899eab1664d4c5d6f8637f91e1b6bce7c75f9f7ca38290b3", size = 258270, upload-time = "2025-10-29T15:57:24.179Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/c8/29/f6615973ade2e1aa04c9c2dc432c03715627220ef9012615260a9f082d4e/mci_py-1.1.1-py3-none-any.whl", hash = "sha256:b8fbc74bd41aeec269766afbe7c430847f938c7865d338f9ab04e4b562ffb1f2", size = 47008, upload-time = "2025-10-29T15:57:23.177Z" },
 ]
 
 [[package]]
