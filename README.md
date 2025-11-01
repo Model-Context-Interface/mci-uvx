@@ -2,6 +2,34 @@
 
 A command-line interface for managing Model Context Interface (MCI) schemas and dynamically running MCP (Model Context Protocol) servers using defined MCI toolsets.
 
+## Features
+- Connect existing **MCP servers** with automatic **caching** and easy **filtering** options to make your unique set of tools
+- Define your custom tools in JSON or YAML using clear, reviewable MCI schema
+  - API:
+    - Connect your n8n, Make and other workflow builders as tools
+    - Convert any REST API Docs to AI tools in minute with LLM
+    - Run remote code with AWS Lambda, judge0, etc.
+    - Authentification, headers, body... Full set of API features are supported
+  - CLI:
+    - Run server based CLI commands as tool from simple "ls" to anything else you can install with apt-get!
+    - Write separated python script and convert in tool in 30 seconds!
+    - Build super fast GoLang binary and run as AI tool
+  - File:
+    - Manage your prompts, generate reports, and provide context with ease
+    - Any file becomes a template: From printing simple variables (`{{ props.message }}`) to blocks like if, for & foreach
+    - Everything you need to create real, dynamic and usable templates
+  - Text:
+    - Simplest way to return dynamic or static text from tool
+    - Supports full templating as File type, but defined inside .mci.json
+    - Ideal for serving dynamic assets (image URLs per user, PDFs, etc)
+    - As well as for generating simple messages
+- Make **toolset** from your custom tools: easiest way to orginize, manage and share your tools!
+- Everything mantioned above you can use programatically via [MCI-Adapter](https://github.com/Model-Context-Interface/mci-py) for your language
+- Or.. Instantly serve them as a unified **STDIO MCP server** via `uvx mcix run` command.
+- And... Create separate .mci.json files to serve them as different MCP servers for different agents! Reducing token and runtime overhead by providing small, specific context files tailored per agent.
+
+Everything simple, super flexible and still, high performant!
+
 ## Quick Start
 
 No installation needed! Run MCI directly using `uvx`:
