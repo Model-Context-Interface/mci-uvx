@@ -68,18 +68,17 @@ mci = "mci:main"
 
 # ---- Build system ----
 
-# Dynamic versioning from:
-# https://github.com/ninoseki/uv-dynamic-versioning/
 
 [build-system]
-requires = ["hatchling", "uv-dynamic-versioning"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [tool.hatch.version]
-source = "uv-dynamic-versioning"
+source = "vcs"
 # Note JSON schemas don't seem to be right for tool.hatch.version.source so
 # this may cause false warnings in IDEs.
 # https://github.com/ninoseki/uv-dynamic-versioning/issues/21
+raw-options = { local_scheme = "no-local-version" }
 
 [tool.uv-dynamic-versioning]
 vcs = "git"
@@ -93,9 +92,6 @@ packages = ["src/mci"]
 # Force include assets directory in the package
 [tool.hatch.build.targets.wheel.force-include]
 "src/mci/assets" = "mci/assets"
-
-[tool.setuptools_scm]
-local_scheme = "no-local-version"
 
 
 # ---- Settings ----
