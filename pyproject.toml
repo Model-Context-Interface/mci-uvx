@@ -2,11 +2,11 @@
 
 [project.urls]
 Repository = "https://github.com/Model-Context-Interface/mci"
-# Homepage = "https://..."
-# Documentation = "https://..."
+Homepage = "https://github.com/Model-Context-Interface"
+Documentation = "https://usemci.dev/"
 
 [project]
-name = "mcicli"
+name = "mcix"
 description = "CLI tool designed to manage MCI (Model Context Interface) schemas and dynamically run MCP servers using defined MCI toolsets "
 authors = [
     { name="maestroerror", email="revaz@usemci.dev" },
@@ -64,7 +64,6 @@ dev = [
 [project.scripts]
 # Add script entry points here:
 mcix  = "mci:main"
-mcicli = "mci:main"
 
 
 # ---- Build system ----
