@@ -30,7 +30,7 @@ A command-line interface for managing Model Context Interface (MCI) schemas and 
 
 Everything simple, super flexible and still, high performant!
 
-> Check out the [documentation](https://usemci.dev/) for general understanding of MCI (We are working hard to update docs with `uvx mcix` tool usage
+> Check out the [documentation](https://usemci.dev/) for general understanding of MCI (We are working hard to update docs with `uvx mcix` tool usage)
 
 ## Quick Start
 
