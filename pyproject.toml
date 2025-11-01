@@ -6,7 +6,7 @@ Repository = "https://github.com/Model-Context-Interface/mci"
 # Documentation = "https://..."
 
 [project]
-name = "mci"
+name = "mcicli"
 description = "CLI tool designed to manage MCI (Model Context Interface) schemas and dynamically run MCP servers using defined MCI toolsets "
 authors = [
     { name="maestroerror", email="revaz@usemci.dev" },
