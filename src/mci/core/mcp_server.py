@@ -120,16 +120,18 @@ class ServerInstance:
     to the MCIClient instance.
     """
 
-    def __init__(self, server: Server, mci_client: MCIClient):
+    def __init__(self, server: Server, mci_client: MCIClient, env_vars: dict[str, str] | None = None):
         """
         Initialize the server instance.
 
         Args:
             server: Configured MCP Server
             mci_client: MCIClient instance for tool execution
+            env_vars: Optional environment variables for template substitution during execution
         """
         self.server: Server = server
         self.mci_client: MCIClient = mci_client
+        self.env_vars: dict[str, str] = env_vars or {}
         self.converter: MCIToolConverter = MCIToolConverter()
         self._running: bool = False
 

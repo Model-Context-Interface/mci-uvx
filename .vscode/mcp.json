@@ -9,14 +9,17 @@
 				"testsManual/test_mcp_server.py"
 			]
 		},
-		"mci-test": {
+		"mci-test-tool": {
 			"type": "stdio",
 			"command": "uv",
 			"args": [
 				"run",
-				"mci",
+				"mcix",
 				"run"
-			]
+			],
+			"env": {
+				"NEWLINE": "TEST env Variable"
+			}
 		}
 	},
 	"inputs": []

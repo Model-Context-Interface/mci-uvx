@@ -4,6 +4,10 @@
     "name": "Example Project",
     "description": "Example MCI configuration"
   },
+  "mci": {
+    "url": "https://usemci.dev/mcp",
+    "type": "http"
+  },
   "tools": [
     {
       "name": "echo_test",
@@ -22,12 +26,10 @@
       },
       "execution": {
         "type": "text",
-        "text": "Echo: {{props.message}}"
+        "text": "Echo: {{props.message}} {{env.NEWLINE}}"
       }
     }
   ],
-  "toolsets": [
-    "weather-tools"
-  ],
+  "toolsets": [],
   "mcp_servers": {}
 }

@@ -102,7 +102,7 @@ class DynamicMCPServer:
         await builder.register_all_tools(self.server, tools)
 
         # Step 5: Create ServerInstance (sets up handlers for listing and execution)
-        self.instance = ServerInstance(self.server, self.mci_client_wrapper.client)
+        self.instance = ServerInstance(self.server, self.mci_client_wrapper.client, self.env_vars)
 
         return self.instance
 
