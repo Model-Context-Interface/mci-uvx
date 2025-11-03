@@ -4,10 +4,6 @@
     "name": "Example Project",
     "description": "Example MCI configuration"
   },
-  "mci": {
-    "url": "https://usemci.dev/mcp",
-    "type": "http"
-  },
   "tools": [
     {
       "name": "echo_test",
@@ -31,5 +27,10 @@
     }
   ],
   "toolsets": [],
-  "mcp_servers": {}
+  "mcp_servers": {
+    "mci-docs": {
+      "url": "https://usemci.dev/mcp",
+      "type": "http"
+    }
+  }
 }
