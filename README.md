@@ -9,7 +9,7 @@ A command-line interface for managing Model Context Interface (MCI) schemas and 
     - Connect your n8n, Make and other workflow builders as tools
     - Convert any REST API Docs to AI tools in minute with LLM
     - Run remote code with AWS Lambda, judge0, etc.
-    - Authentification, headers, body... Full set of API features are supported
+    - Authentication, headers, body... Full set of API features are supported
   - CLI:
     - Run server based CLI commands as tool from simple "ls" to anything else you can install with apt-get!
     - Write separated python script and convert in tool in 30 seconds!
@@ -23,8 +23,8 @@ A command-line interface for managing Model Context Interface (MCI) schemas and 
     - Supports full templating as File type, but defined inside .mci.json
     - Ideal for serving dynamic assets (image URLs per user, PDFs, etc)
     - As well as for generating simple messages
-- Make **toolset** from your custom tools: easiest way to orginize, manage and share your tools!
-- Everything mantioned above you can use programatically via [MCI-Adapter](https://github.com/Model-Context-Interface/mci-py) for your language
+- Make **toolset** from your custom tools: easiest way to organize, manage and share your tools!
+- Everything mentioned above you can use programmatically via [MCI-Adapter](https://github.com/Model-Context-Interface/mci-py) for your language
 - Or.. Instantly serve them as a unified **STDIO MCP server** via `uvx mcix run` command.
 - And... Create separate .mci.json files to serve them as different MCP servers for different agents! Reducing token and runtime overhead by providing small, specific context files tailored per agent.
 
