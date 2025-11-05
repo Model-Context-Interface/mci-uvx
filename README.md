@@ -287,6 +287,66 @@ uvx mcix run
 
 MCI tools support multiple execution types. Below are examples for each type:
 
+## Tool Annotations
+
+MCI tools support optional annotations that provide metadata and behavioral hints about the tool. These annotations are preserved when serving tools via MCP servers and help MCP clients make better decisions about tool usage and display.
+
+### Supported Annotation Fields
+
+All annotation fields are optional:
+
+- **`title`**: Human-readable title for the tool (alternative to the machine name)
+- **`readOnlyHint`**: `true` if the tool only reads data without modification, `false` if it modifies state
+- **`destructiveHint`**: `true` if the tool may perform destructive updates (delete, overwrite), `false` if only additive
+- **`idempotentHint`**: `true` if calling the tool repeatedly with the same arguments has no additional effect
+- **`openWorldHint`**: `true` if the tool interacts with external entities (web APIs, databases), `false` for internal tools
+
+**Example with annotations:**
+```json
+{
+  "name": "delete_resource",
+  "description": "Delete a resource from the remote server",
+  "annotations": {
+    "title": "Delete Resource",
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": true
+  },
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "id": {"type": "string", "description": "Resource ID"}
+    },
+    "required": ["id"]
+  },
+  "execution": {
+    "type": "http",
+    "method": "DELETE",
+    "url": "{{env.API_URL}}/resources/{{props.id}}"
+  }
+}
+```
+
+**Example with partial annotations:**
+```json
+{
+  "name": "read_data",
+  "description": "Read data from the database",
+  "annotations": {
+    "title": "Read Data",
+    "readOnlyHint": true
+  },
+  "execution": {
+    "type": "http",
+    "method": "GET",
+    "url": "{{env.API_URL}}/data"
+  }
+}
+```
+
+> **Note**: Annotations are automatically included when serving tools via `uvx mcix run`. MCP clients can use these annotations for filtering, validation, and user interface enhancements.
+
 ### Text Execution
 
 Returns templated text using `{{props.field}}` and `{{env.VAR}}` syntax.
