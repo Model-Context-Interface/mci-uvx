@@ -8,8 +8,9 @@ are correctly included in the tool list response.
 
 import asyncio
 import json
-import os
+import pathlib
 import sys
+import tempfile
 
 from mcipy import MCIClient
 from rich.console import Console
@@ -23,10 +24,6 @@ console = Console()
 async def test_mcp_server_annotations():
     """Test that MCP server includes annotations in tool responses."""
     console.print("\n[bold blue]Testing Annotations in MCP Server[/bold blue]\n")
-
-    # Get the absolute path to the project root
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    schema_path = os.path.join(project_root, "mci/example_toolset.mci.json")
 
     # Create a test schema with annotations
     test_schema = {
@@ -110,8 +107,6 @@ async def test_mcp_server_annotations():
     }
 
     # Create temporary schema file
-    import tempfile
-
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".mci.json", delete=False
     ) as f:
@@ -244,8 +239,6 @@ async def test_mcp_server_annotations():
             return False
     finally:
         # Clean up temporary file
-        import pathlib
-
         pathlib.Path(schema_path).unlink(missing_ok=True)
 
 
