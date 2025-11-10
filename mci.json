@@ -26,7 +26,9 @@
       }
     }
   ],
-  "toolsets": [],
+  "toolsets": [
+    "weather-tools"
+  ],
   "mcp_servers": {
     "mci-docs": {
       "url": "https://usemci.dev/mcp",

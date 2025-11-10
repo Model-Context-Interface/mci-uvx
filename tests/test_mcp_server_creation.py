@@ -289,3 +289,91 @@ async def test_multiple_servers_from_same_client():
 
     finally:
         Path(schema_path).unlink()
+
+
+@pytest.mark.asyncio
+async def test_server_preserves_annotations():
+    """
+    Test that tool annotations are preserved when creating MCP server.
+
+    Verifies that annotations from MCI tools (title, readOnlyHint, destructiveHint,
+    idempotentHint, openWorldHint) are correctly transferred to MCP tools in the server.
+    """
+    schema = {
+        "schemaVersion": "1.0",
+        "tools": [
+            {
+                "name": "delete_resource",
+                "description": "Delete a resource from the remote server",
+                "annotations": {
+                    "title": "Delete Resource",
+                    "readOnlyHint": False,
+                    "destructiveHint": True,
+                    "idempotentHint": False,
+                    "openWorldHint": True,
+                },
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {"id": {"type": "string"}},
+                    "required": ["id"],
+                },
+                "execution": {"type": "text", "text": "Deleted resource {{props.id}}"},
+            },
+            {
+                "name": "read_data",
+                "description": "Read data from the server",
+                "annotations": {
+                    "title": "Read Data",
+                    "readOnlyHint": True,
+                },
+                "execution": {"type": "text", "text": "Reading data..."},
+            },
+            {
+                "name": "no_annotations",
+                "description": "Tool without annotations",
+                "execution": {"type": "text", "text": "No annotations"},
+            },
+        ],
+    }
+
+    schema_path = create_test_schema(schema)
+    try:
+        # Load schema and create server
+        mci_client = MCIClient(schema_file_path=schema_path)
+        tools = mci_client.tools()
+
+        builder = MCPServerBuilder(mci_client)
+        server = await builder.create_server("annotated-server")
+
+        await builder.register_all_tools(server, tools)
+
+        mcp_tools = server._mci_tools  # type: ignore
+
+        # Verify annotations for delete_resource
+        delete_tool = mcp_tools[0]
+        assert delete_tool.name == "delete_resource"
+        assert delete_tool.annotations is not None
+        assert delete_tool.annotations.title == "Delete Resource"
+        assert delete_tool.annotations.readOnlyHint is False
+        assert delete_tool.annotations.destructiveHint is True
+        assert delete_tool.annotations.idempotentHint is False
+        assert delete_tool.annotations.openWorldHint is True
+
+        # Verify annotations for read_data
+        read_tool = mcp_tools[1]
+        assert read_tool.name == "read_data"
+        assert read_tool.annotations is not None
+        assert read_tool.annotations.title == "Read Data"
+        assert read_tool.annotations.readOnlyHint is True
+        # Other fields should be None (not set in MCI)
+        assert read_tool.annotations.destructiveHint is None
+        assert read_tool.annotations.idempotentHint is None
+        assert read_tool.annotations.openWorldHint is None
+
+        # Verify no annotations for no_annotations tool
+        no_ann_tool = mcp_tools[2]
+        assert no_ann_tool.name == "no_annotations"
+        assert no_ann_tool.annotations is None
+
+    finally:
+        Path(schema_path).unlink()

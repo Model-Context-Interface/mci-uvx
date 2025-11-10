@@ -120,7 +120,9 @@ class ServerInstance:
     to the MCIClient instance.
     """
 
-    def __init__(self, server: Server, mci_client: MCIClient, env_vars: dict[str, str] | None = None):
+    def __init__(
+        self, server: Server, mci_client: MCIClient, env_vars: dict[str, str] | None = None
+    ):
         """
         Initialize the server instance.
 

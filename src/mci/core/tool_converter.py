@@ -26,8 +26,8 @@ class MCIToolConverter:
         Convert an MCI Tool to MCP Tool format.
 
         Takes a Tool object from mci-py and converts it to the types.Tool format
-        expected by the MCP protocol. This includes converting the input schema
-        and preserving all metadata.
+        expected by the MCP protocol. This includes converting the input schema,
+        preserving all metadata, and transferring annotations.
 
         Args:
             mci_tool: Tool object from mci-py (Pydantic model)
@@ -43,11 +43,15 @@ class MCIToolConverter:
         # Convert inputSchema to MCP format (JSON Schema)
         input_schema = MCIToolConverter.convert_input_schema(mci_tool.inputSchema or {})
 
-        # Create MCP Tool with converted schema
+        # Convert annotations to MCP format
+        annotations = MCIToolConverter.convert_annotations(mci_tool.annotations)
+
+        # Create MCP Tool with converted schema and annotations
         return types.Tool(
             name=mci_tool.name,
             description=mci_tool.description or "",
             inputSchema=input_schema,
+            annotations=annotations,
         )
 
     @staticmethod
@@ -80,3 +84,36 @@ class MCIToolConverter:
             return {"type": "object", "properties": mci_schema}
 
         return mci_schema
+
+    @staticmethod
+    def convert_annotations(mci_annotations: Any) -> types.ToolAnnotations | None:
+        """
+        Convert MCI Annotations to MCP ToolAnnotations format.
+
+        Transfers annotation fields from MCI tool annotations to the MCP format,
+        including title, readOnlyHint, destructiveHint, idempotentHint, and openWorldHint.
+
+        Args:
+            mci_annotations: Annotations object from MCI tool definition (or None)
+
+        Returns:
+            ToolAnnotations object compatible with MCP protocol, or None if no annotations
+
+        Example:
+            >>> from mcipy.models import Annotations
+            >>> mci_ann = Annotations(title="My Tool", readOnlyHint=True)
+            >>> mcp_ann = MCIToolConverter.convert_annotations(mci_ann)
+            >>> print(mcp_ann.title, mcp_ann.readOnlyHint)
+        """
+        if mci_annotations is None:
+            return None
+
+        # Convert MCI Annotations to MCP ToolAnnotations
+        # Both models have the same field structure, so we can extract and transfer
+        return types.ToolAnnotations(
+            title=mci_annotations.title,
+            readOnlyHint=mci_annotations.readOnlyHint,
+            destructiveHint=mci_annotations.destructiveHint,
+            idempotentHint=mci_annotations.idempotentHint,
+            openWorldHint=mci_annotations.openWorldHint,
+        )

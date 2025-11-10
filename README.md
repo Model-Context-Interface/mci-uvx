@@ -9,7 +9,7 @@ A command-line interface for managing Model Context Interface (MCI) schemas and 
     - Connect your n8n, Make and other workflow builders as tools
     - Convert any REST API Docs to AI tools in minute with LLM
     - Run remote code with AWS Lambda, judge0, etc.
-    - Authentification, headers, body... Full set of API features are supported
+    - Authentication, headers, body... Full set of API features are supported
   - CLI:
     - Run server based CLI commands as tool from simple "ls" to anything else you can install with apt-get!
     - Write separated python script and convert in tool in 30 seconds!
@@ -23,8 +23,8 @@ A command-line interface for managing Model Context Interface (MCI) schemas and 
     - Supports full templating as File type, but defined inside .mci.json
     - Ideal for serving dynamic assets (image URLs per user, PDFs, etc)
     - As well as for generating simple messages
-- Make **toolset** from your custom tools: easiest way to orginize, manage and share your tools!
-- Everything mantioned above you can use programatically via [MCI-Adapter](https://github.com/Model-Context-Interface/mci-py) for your language
+- Make **toolset** from your custom tools: easiest way to organize, manage and share your tools!
+- Everything mentioned above you can use programmatically via [MCI-Adapter](https://github.com/Model-Context-Interface/mci-py) for your language
 - Or.. Instantly serve them as a unified **STDIO MCP server** via `uvx mcix run` command.
 - And... Create separate .mci.json files to serve them as different MCP servers for different agents! Reducing token and runtime overhead by providing small, specific context files tailored per agent.
 
@@ -286,6 +286,66 @@ uvx mcix run
 ## Supported Execution Types
 
 MCI tools support multiple execution types. Below are examples for each type:
+
+## Tool Annotations
+
+MCI tools support optional annotations that provide metadata and behavioral hints about the tool. These annotations are preserved when serving tools via MCP servers and help MCP clients make better decisions about tool usage and display.
+
+### Supported Annotation Fields
+
+All annotation fields are optional:
+
+- **`title`**: Human-readable title for the tool (alternative to the machine name)
+- **`readOnlyHint`**: `true` if the tool only reads data without modification, `false` if it modifies state
+- **`destructiveHint`**: `true` if the tool may perform destructive updates (delete, overwrite), `false` if only additive
+- **`idempotentHint`**: `true` if calling the tool repeatedly with the same arguments has no additional effect
+- **`openWorldHint`**: `true` if the tool interacts with external entities (web APIs, databases), `false` for internal tools
+
+**Example with annotations:**
+```json
+{
+  "name": "delete_resource",
+  "description": "Delete a resource from the remote server",
+  "annotations": {
+    "title": "Delete Resource",
+    "readOnlyHint": false,
+    "destructiveHint": true,
+    "idempotentHint": false,
+    "openWorldHint": true
+  },
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "id": {"type": "string", "description": "Resource ID"}
+    },
+    "required": ["id"]
+  },
+  "execution": {
+    "type": "http",
+    "method": "DELETE",
+    "url": "{{env.API_URL}}/resources/{{props.id}}"
+  }
+}
+```
+
+**Example with partial annotations:**
+```json
+{
+  "name": "read_data",
+  "description": "Read data from the database",
+  "annotations": {
+    "title": "Read Data",
+    "readOnlyHint": true
+  },
+  "execution": {
+    "type": "http",
+    "method": "GET",
+    "url": "{{env.API_URL}}/data"
+  }
+}
+```
+
+> **Note**: Annotations are automatically included when serving tools via `uvx mcix run`. MCP clients can use these annotations for filtering, validation, and user interface enhancements.
 
 ### Text Execution
 
