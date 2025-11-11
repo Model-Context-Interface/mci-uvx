@@ -3,11 +3,16 @@ mci_client.py - CLI wrapper around MCIClient from mci-py
 
 This module provides a CLI-friendly wrapper around the MCIClient class from mci-py.
 It delegates all schema parsing, validation, tool loading, and filtering to MCIClient,
-while providing CLI-specific error handling and output formatting.
+while providing CLI-specific error handling and output formatting. It also supports
+automatic loading of environment variables from .env files.
 """
+
+from pathlib import Path
 
 from mcipy import MCIClient
 from mcipy.models import Tool
+
+from mci.utils.dotenv import get_env_with_dotenv
 
 
 class MCIClientWrapper:
@@ -17,20 +22,44 @@ class MCIClientWrapper:
     This class provides a CLI-friendly interface to MCIClient, delegating all
     tool loading, filtering, and schema operations to the upstream mci-py library.
     It focuses on error handling and formatting for CLI usability.
+
+    The wrapper automatically loads environment variables from .env files in:
+    - The project root directory (same location as the MCI schema file)
+    - The ./mci directory
     """
 
-    def __init__(self, file_path: str, env_vars: dict[str, str] | None = None):
+    def __init__(
+        self, file_path: str, env_vars: dict[str, str] | None = None, auto_load_dotenv: bool = True
+    ):
         """
         Initialize the wrapper with an MCIClient instance.
 
+        If auto_load_dotenv is True (default), automatically loads environment variables
+        from .env files in the project root and ./mci directory. The precedence order is:
+        1. ./mci/.env (lowest priority)
+        2. Project root .env
+        3. System environment variables
+        4. env_vars argument (highest priority)
+
         Args:
             file_path: Path to the MCI schema file (.json, .yaml, or .yml)
-            env_vars: Optional environment variables for template substitution
+            env_vars: Optional environment variables for template substitution (highest priority)
+            auto_load_dotenv: Whether to automatically load .env files (default: True)
 
         Raises:
             MCIClientError: If the schema file cannot be loaded or parsed
         """
-        self._client: MCIClient = MCIClient(schema_file_path=file_path, env_vars=env_vars or {})
+        # Determine project root from schema file location
+        project_root = Path(file_path).parent.resolve()
+
+        # Load environment variables with proper precedence
+        if auto_load_dotenv:
+            merged_env = get_env_with_dotenv(project_root, env_vars)
+        else:
+            # If auto-loading is disabled, just use provided env_vars
+            merged_env = env_vars or {}
+
+        self._client: MCIClient = MCIClient(schema_file_path=file_path, env_vars=merged_env)
         self._file_path: str = file_path
 
     @property
