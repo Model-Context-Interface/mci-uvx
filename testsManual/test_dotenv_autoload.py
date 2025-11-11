@@ -9,8 +9,6 @@ Run this test manually to verify the feature works:
     uv run python testsManual/test_dotenv_autoload.py
 """
 
-import os
-import shutil
 import tempfile
 from pathlib import Path
 
@@ -129,7 +127,7 @@ API_KEY=project-key
 
         # Load config
         config = MCIConfig()
-        client = config.load(str(schema_file))
+        config.load(str(schema_file))
 
         console.print("✓ Config loaded successfully")
         console.print("\n[bold]Expected precedence:[/bold]")
@@ -164,7 +162,7 @@ def test_no_dotenv_files():
 
         # Load config
         config = MCIConfig()
-        client = config.load(str(schema_file))
+        config.load(str(schema_file))
 
         console.print("✓ Config loaded successfully without .env files")
         console.print("\n[bold green]✓ Test 3 PASSED[/bold green]\n")
@@ -202,7 +200,7 @@ DOTENV_ONLY=dotenv-value
         # Load config with explicit env vars
         config = MCIConfig()
         explicit_env = {"OVERRIDE_VAR": "from-explicit", "EXPLICIT_ONLY": "explicit-value"}
-        client = config.load(str(schema_file), env_vars=explicit_env)
+        config.load(str(schema_file), env_vars=explicit_env)
 
         console.print("✓ Config loaded with explicit env vars")
         console.print("\n[bold]Expected results:[/bold]")

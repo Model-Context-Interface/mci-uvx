@@ -582,24 +582,31 @@ MCI supports environment variable templating in tool definitions:
 
 ### Automatic .env File Loading
 
-MCI automatically loads environment variables from `.env` files when loading your MCI schema. This provides a convenient way to manage environment-specific configuration without manually setting variables.
+MCI automatically loads environment variables from `.env` and `.env.mci` files when loading your MCI schema. This provides a convenient way to manage environment-specific configuration without manually setting variables.
 
 **Automatic Detection:**
-- When you run any MCI command (`run`, `list`, `validate`, etc.), MCI looks for `.env` files in:
+- When you run any MCI command (`run`, `list`, `validate`, etc.), MCI looks for environment files in:
   1. The project root directory (same location as your `mci.json` or `mci.yaml`)
   2. The `./mci` directory
 
+**File Priority:**
+- MCI checks for both `.env.mci` (MCI-specific configs) and `.env` (general configs) files
+- `.env.mci` files take precedence over `.env` files in the same location
+- This allows you to separate MCI-specific environment variables from general project variables
+
 **Precedence Order (lowest to highest):**
 1. `./mci/.env` - Library-level defaults (lowest priority)
-2. Project root `.env` - Project-specific overrides
-3. System environment variables (set via `export` or shell config)
-4. Environment variables passed via CLI (highest priority)
+2. `./mci/.env.mci` - Library-level MCI-specific configs
+3. Project root `.env` - Project-level general configs
+4. Project root `.env.mci` - Project-level MCI-specific configs
+5. System environment variables (set via `export` or shell config)
+6. Environment variables passed via CLI (highest priority)
 
 If the same variable is defined in multiple locations, the higher-priority source wins.
 
 **Example .env file:**
 ```bash
-# .env file in project root
+# .env or .env.mci file in project root
 API_KEY=your-api-key-here
 BASE_URL=https://api.example.com
 DEBUG=false
@@ -614,10 +621,12 @@ export OPTIONAL_VAR=value
 **Example directory structure:**
 ```
 my-project/
-├── .env                    # Project-specific variables (overrides ./mci/.env)
+├── .env.mci               # MCI-specific variables (highest priority)
+├── .env                   # General project variables
 ├── mci.json               # Your MCI schema
 └── mci/
-    ├── .env               # Library defaults (lowest priority)
+    ├── .env.mci           # Library MCI-specific defaults
+    ├── .env               # Library general defaults (lowest priority)
     └── weather.mci.json   # Your toolsets
 ```
 
@@ -627,19 +636,28 @@ my-project/
 API_KEY=default-key
 LIBRARY_VAR=lib-value
 
+# ./mci/.env.mci
+API_KEY=mci-default-key    # Overrides ./mci/.env
+
 # .env (project root)
-API_KEY=project-key        # This overrides ./mci/.env
+API_KEY=project-key        # Overrides both mci files
 PROJECT_VAR=proj-value
 
+# .env.mci (project root)
+API_KEY=mci-project-key    # Highest priority - overrides all above
+MCI_SPECIFIC=mci-value
+
 # Result: MCI will use:
-# API_KEY=project-key (from root .env)
+# API_KEY=mci-project-key (from root .env.mci - highest priority)
 # LIBRARY_VAR=lib-value (from ./mci/.env)
 # PROJECT_VAR=proj-value (from root .env)
+# MCI_SPECIFIC=mci-value (from root .env.mci)
 ```
 
 **Notes:**
 - .env files are completely optional - MCI works fine without them
 - No error if .env files are missing
+- Use `.env.mci` for MCI-specific configurations to keep them separate from general project configs
 - You can disable auto-loading by setting `auto_load_dotenv=False` when using the MCI library programmatically
 - .env files should NOT be committed to version control if they contain secrets
 

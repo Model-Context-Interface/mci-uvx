@@ -7,8 +7,6 @@ Tests the .env file parsing, discovery, and merging functionality.
 import tempfile
 from pathlib import Path
 
-import pytest
-
 from mci.utils.dotenv import (
     find_and_merge_dotenv_files,
     get_env_with_dotenv,
@@ -351,3 +349,116 @@ def test_get_env_with_dotenv_no_additional():
                 os.environ["SYSTEM_VAR"] = original_value
             else:
                 os.environ.pop("SYSTEM_VAR", None)
+
+
+def test_env_mci_priority_over_env():
+    """Test that .env.mci files take precedence over .env files."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir_path = Path(tmpdir)
+
+        # Create .env file
+        env_file = tmpdir_path / ".env"
+        env_file.write_text("API_KEY=from-env\nENV_ONLY=env-value\n")
+
+        # Create .env.mci file (should override API_KEY)
+        env_mci_file = tmpdir_path / ".env.mci"
+        env_mci_file.write_text("API_KEY=from-env-mci\nMCI_ONLY=mci-value\n")
+
+        env_vars = find_and_merge_dotenv_files(tmpdir_path)
+
+        # .env.mci should override .env for API_KEY
+        assert env_vars["API_KEY"] == "from-env-mci"
+        assert env_vars["ENV_ONLY"] == "env-value"
+        assert env_vars["MCI_ONLY"] == "mci-value"
+
+
+def test_mci_env_mci_priority():
+    """Test that ./mci/.env.mci takes precedence over ./mci/.env."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir_path = Path(tmpdir)
+
+        # Create mci directory
+        mci_dir = tmpdir_path / "mci"
+        mci_dir.mkdir()
+
+        # Create ./mci/.env
+        mci_env = mci_dir / ".env"
+        mci_env.write_text("SHARED_KEY=from-mci-env\nMCI_ENV_ONLY=mci-env\n")
+
+        # Create ./mci/.env.mci (should override SHARED_KEY)
+        mci_env_mci = mci_dir / ".env.mci"
+        mci_env_mci.write_text("SHARED_KEY=from-mci-env-mci\nMCI_MCI_ONLY=mci-mci\n")
+
+        env_vars = find_and_merge_dotenv_files(tmpdir_path)
+
+        # ./mci/.env.mci should override ./mci/.env for SHARED_KEY
+        assert env_vars["SHARED_KEY"] == "from-mci-env-mci"
+        assert env_vars["MCI_ENV_ONLY"] == "mci-env"
+        assert env_vars["MCI_MCI_ONLY"] == "mci-mci"
+
+
+def test_full_precedence_with_env_mci():
+    """Test full precedence order with all four .env files."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir_path = Path(tmpdir)
+
+        # Create mci directory
+        mci_dir = tmpdir_path / "mci"
+        mci_dir.mkdir()
+
+        # 1. ./mci/.env (lowest priority)
+        mci_env = mci_dir / ".env"
+        mci_env.write_text("KEY=mci-env\nMCI_ENV=1\n")
+
+        # 2. ./mci/.env.mci
+        mci_env_mci = mci_dir / ".env.mci"
+        mci_env_mci.write_text("KEY=mci-env-mci\nMCI_MCI=2\n")
+
+        # 3. root .env
+        root_env = tmpdir_path / ".env"
+        root_env.write_text("KEY=root-env\nROOT_ENV=3\n")
+
+        # 4. root .env.mci (highest priority)
+        root_env_mci = tmpdir_path / ".env.mci"
+        root_env_mci.write_text("KEY=root-env-mci\nROOT_MCI=4\n")
+
+        env_vars = find_and_merge_dotenv_files(tmpdir_path)
+
+        # root .env.mci should win for KEY
+        assert env_vars["KEY"] == "root-env-mci"
+        assert env_vars["MCI_ENV"] == "1"
+        assert env_vars["MCI_MCI"] == "2"
+        assert env_vars["ROOT_ENV"] == "3"
+        assert env_vars["ROOT_MCI"] == "4"
+
+
+def test_env_mci_only_in_root():
+    """Test .env.mci works when only in root directory."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir_path = Path(tmpdir)
+
+        # Create only .env.mci in root
+        root_env_mci = tmpdir_path / ".env.mci"
+        root_env_mci.write_text("MCI_VAR=mci-root\n")
+
+        env_vars = find_and_merge_dotenv_files(tmpdir_path)
+
+        assert env_vars["MCI_VAR"] == "mci-root"
+
+
+def test_env_mci_only_in_mci_dir():
+    """Test .env.mci works when only in ./mci directory."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir_path = Path(tmpdir)
+
+        # Create mci directory
+        mci_dir = tmpdir_path / "mci"
+        mci_dir.mkdir()
+
+        # Create only .env.mci in ./mci
+        mci_env_mci = mci_dir / ".env.mci"
+        mci_env_mci.write_text("MCI_VAR=mci-lib\n")
+
+        env_vars = find_and_merge_dotenv_files(tmpdir_path)
+
+        assert env_vars["MCI_VAR"] == "mci-lib"
