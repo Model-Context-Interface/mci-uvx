@@ -42,6 +42,7 @@ dependencies = [
     "mci-py>=1.1.4",
     "mcp>=1.19.0",
     "pytest-cov>=7.0.0",
+    "python-dotenv>=1.2.1",
     "pyyaml>=6.0.3",
     "rich>=14.2.0",
 ]

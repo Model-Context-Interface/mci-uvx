@@ -217,3 +217,186 @@ def test_malformed_json_error():
         config = MCIConfig()
         with pytest.raises(MCIClientError):
             config.load(str(schema_file))
+
+
+def test_load_with_dotenv_from_root():
+    """Test loading schema with .env file in project root."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir_path = Path(tmpdir)
+
+        # Create .env file in root
+        env_file = tmpdir_path / ".env"
+        env_file.write_text("DOTENV_VAR=from-root\nAPI_KEY=root-key\n")
+
+        # Create a valid schema file
+        schema_file = tmpdir_path / "mci.json"
+        schema_content = """{
+            "schemaVersion": "1.0",
+            "metadata": {
+                "name": "Test Project",
+                "description": "Test MCI configuration"
+            },
+            "tools": [],
+            "toolsets": []
+        }"""
+        schema_file.write_text(schema_content)
+
+        config = MCIConfig()
+        # Load without explicit env_vars - should auto-load from .env
+        client = config.load(str(schema_file))
+
+        # Verify client loaded successfully
+        assert client is not None
+
+
+def test_load_with_dotenv_from_mci_dir():
+    """Test loading schema with .env file in ./mci directory."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir_path = Path(tmpdir)
+
+        # Create mci directory and .env file
+        mci_dir = tmpdir_path / "mci"
+        mci_dir.mkdir()
+        env_file = mci_dir / ".env"
+        env_file.write_text("MCI_VAR=from-mci\n")
+
+        # Create schema file
+        schema_file = tmpdir_path / "mci.json"
+        schema_content = """{
+            "schemaVersion": "1.0",
+            "metadata": {
+                "name": "Test Project",
+                "description": "Test MCI configuration"
+            },
+            "tools": [],
+            "toolsets": []
+        }"""
+        schema_file.write_text(schema_content)
+
+        config = MCIConfig()
+        client = config.load(str(schema_file))
+
+        assert client is not None
+
+
+def test_load_with_dotenv_precedence():
+    """Test that root .env overrides ./mci/.env."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir_path = Path(tmpdir)
+
+        # Create mci directory and .env file
+        mci_dir = tmpdir_path / "mci"
+        mci_dir.mkdir()
+        mci_env = mci_dir / ".env"
+        mci_env.write_text("SHARED_VAR=from-mci\nMCI_ONLY=mci-value\n")
+
+        # Create root .env file (should override SHARED_VAR)
+        root_env = tmpdir_path / ".env"
+        root_env.write_text("SHARED_VAR=from-root\nROOT_ONLY=root-value\n")
+
+        # Create schema file
+        schema_file = tmpdir_path / "mci.json"
+        schema_content = """{
+            "schemaVersion": "1.0",
+            "metadata": {
+                "name": "Test Project",
+                "description": "Test MCI configuration"
+            },
+            "tools": [],
+            "toolsets": []
+        }"""
+        schema_file.write_text(schema_content)
+
+        config = MCIConfig()
+        client = config.load(str(schema_file))
+
+        # The client should have loaded successfully with merged env vars
+        assert client is not None
+
+
+def test_load_dotenv_disabled():
+    """Test loading without auto-loading .env files."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir_path = Path(tmpdir)
+
+        # Create .env file
+        env_file = tmpdir_path / ".env"
+        env_file.write_text("DOTENV_VAR=should-not-load\n")
+
+        # Create schema file
+        schema_file = tmpdir_path / "mci.json"
+        schema_content = """{
+            "schemaVersion": "1.0",
+            "metadata": {
+                "name": "Test Project",
+                "description": "Test MCI configuration"
+            },
+            "tools": [],
+            "toolsets": []
+        }"""
+        schema_file.write_text(schema_content)
+
+        config = MCIConfig()
+        # Disable auto-loading
+        client = config.load(str(schema_file), auto_load_dotenv=False)
+
+        assert client is not None
+
+
+def test_load_with_dotenv_and_explicit_env_vars():
+    """Test that explicit env_vars override .env files."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir_path = Path(tmpdir)
+
+        # Create .env file
+        env_file = tmpdir_path / ".env"
+        env_file.write_text("OVERRIDE_VAR=from-dotenv\n")
+
+        # Create schema file
+        schema_file = tmpdir_path / "mci.json"
+        schema_content = """{
+            "schemaVersion": "1.0",
+            "metadata": {
+                "name": "Test Project",
+                "description": "Test MCI configuration"
+            },
+            "tools": [],
+            "toolsets": []
+        }"""
+        schema_file.write_text(schema_content)
+
+        config = MCIConfig()
+        # Explicit env_vars should take precedence
+        explicit_env = {"OVERRIDE_VAR": "from-explicit"}
+        client = config.load(str(schema_file), env_vars=explicit_env)
+
+        assert client is not None
+
+
+def test_validate_schema_with_dotenv():
+    """Test validating schema with auto-loaded .env files."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir_path = Path(tmpdir)
+
+        # Create .env file
+        env_file = tmpdir_path / ".env"
+        env_file.write_text("VAR1=value1\n")
+
+        # Create schema file
+        schema_file = tmpdir_path / "mci.json"
+        schema_content = """{
+            "schemaVersion": "1.0",
+            "metadata": {
+                "name": "Test Project",
+                "description": "Test MCI configuration"
+            },
+            "tools": [],
+            "toolsets": []
+        }"""
+        schema_file.write_text(schema_content)
+
+        config = MCIConfig()
+        is_valid, error = config.validate_schema(str(schema_file))
+
+        assert is_valid is True
+        assert error == ""

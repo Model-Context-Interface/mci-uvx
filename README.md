@@ -580,9 +580,136 @@ MCI supports environment variable templating in tool definitions:
 }
 ```
 
+### Automatic .env File Loading
+
+MCI automatically loads environment variables from `.env` and `.env.mci` files when loading your MCI schema. This provides a convenient way to manage environment-specific configuration without manually setting variables.
+
+**Automatic Detection:**
+- When you run any MCI command (`run`, `list`, `validate`, etc.), MCI looks for environment files in:
+  1. The project root directory (same location as your `mci.json` or `mci.yaml`)
+  2. The `./mci` directory
+
+**File Priority:**
+- MCI prioritizes `.env.mci` files (MCI-specific configs) over `.env` files (general configs)
+- **Important:** When `.env.mci` files exist, `.env` files are **not loaded** at all
+- This allows you to keep MCI-specific environment variables separate from general project variables
+
+**Loading Behavior:**
+- **If `.env.mci` files exist:** Only `.env.mci` files are loaded
+  1. `./mci/.env.mci` - Library MCI-specific configs
+  2. Project root `.env.mci` - Project MCI-specific configs (higher priority)
+- **If no `.env.mci` files exist:** `.env` files are loaded instead
+  1. `./mci/.env` - Library general defaults
+  2. Project root `.env` - Project-level configs (higher priority)
+- **Then:** System environment variables and explicit env_vars override all file-based configs
+
+**Full Precedence Order (lowest to highest):**
+1. File-based configs (`.env.mci` files if they exist, otherwise `.env` files)
+   - From `./mci/` directory first
+   - Then from project root
+2. System environment variables (set via `export` or shell config)
+3. Environment variables passed via CLI or code (highest priority)
+
+**Example .env file:**
+```bash
+# .env or .env.mci file in project root
+API_KEY=your-api-key-here
+BASE_URL=https://api.example.com
+DEBUG=false
+
+# Comments are supported
+# Blank lines are ignored
+
+# Export keyword is optional (automatically stripped)
+export OPTIONAL_VAR=value
+```
+
+**Example directory structure:**
+```
+my-project/
+├── .env.mci               # MCI-specific variables (if present, .env ignored)
+├── .env                   # General project variables (only if .env.mci absent)
+├── mci.json               # Your MCI schema
+└── mci/
+    ├── .env.mci           # Library MCI-specific (if present, ./mci/.env ignored)
+    ├── .env               # Library defaults (only if ./mci/.env.mci absent)
+    └── weather.mci.json   # Your toolsets
+```
+
+**Example: Using .env.mci files**
+```bash
+# Scenario 1: Only .env.mci files present
+# ./mci/.env.mci
+API_KEY=mci-library-key
+LIBRARY_VAR=lib-value
+
+# .env.mci (project root)
+API_KEY=mci-project-key    # Overrides ./mci/.env.mci
+MCI_SPECIFIC=mci-value
+
+# Result: MCI will use:
+# API_KEY=mci-project-key (from root .env.mci)
+# LIBRARY_VAR=lib-value (from ./mci/.env.mci)
+# MCI_SPECIFIC=mci-value (from root .env.mci)
+```
+
+**Example: Using .env files (no .env.mci)**
+```bash
+# Scenario 2: Only .env files present
+# ./mci/.env
+API_KEY=default-key
+LIBRARY_VAR=lib-value
+
+# .env (project root)
+API_KEY=project-key        # Overrides ./mci/.env
+PROJECT_VAR=proj-value
+
+# Result: MCI will use:
+# API_KEY=project-key (from root .env)
+# LIBRARY_VAR=lib-value (from ./mci/.env)
+# PROJECT_VAR=proj-value (from root .env)
+```
+
+**Notes:**
+- .env files are completely optional - MCI works fine without them
+- No error if .env files are missing
+- Use `.env.mci` for MCI-specific configurations to keep them completely separate from general project configs
+- When `.env.mci` exists, `.env` is ignored (not merged)
+- You can disable auto-loading by setting `auto_load_dotenv=False` when using the MCI library programmatically
+- .env files should NOT be committed to version control if they contain secrets
+
 ### Setting Environment Variables for MCP Clients
 
-When running MCI as an MCP server from clients like Claude Desktop or VS Code, configure environment variables in the client's settings:
+When running MCI as an MCP server from clients like Claude Desktop or VS Code, you have two options for environment variables:
+
+1. **Use .env files** (recommended): Create a `.env` file in your project root, and MCI will automatically load it
+2. **Configure in client settings**: Explicitly set environment variables in the MCP client configuration
+
+**Option 1: Using .env files (Recommended)**
+
+Create a `.env` file in your project root:
+```bash
+# .env
+API_KEY=your-api-key
+BASE_URL=https://api.example.com
+```
+
+Then configure your MCP client with minimal settings:
+```json
+{
+  "mcpServers": {
+    "mci-tools": {
+      "command": "uvx",
+      "args": ["mcix", "run"],
+      "cwd": "/path/to/your/project"
+    }
+  }
+}
+```
+
+MCI will automatically load the `.env` file when it starts.
+
+**Option 2: Configure in Client Settings**
 
 **Claude Desktop Example** (`claude_desktop_config.json`):
 ```json
@@ -622,13 +749,22 @@ When running MCI as an MCP server from clients like Claude Desktop or VS Code, c
 
 **Running Standalone** (without MCP client):
 
-If you're running the MCP server directly in a terminal, set environment variables first:
+MCI automatically loads `.env` files from your project root and `./mci` directory:
 
+```bash
+# Create .env file
+echo "API_KEY=your-api-key" > .env
+echo "BASE_URL=https://api.example.com" >> .env
+
+# Run MCI - it will automatically load .env
+uvx mcix run
+```
+
+You can also set environment variables manually if needed:
 ```bash
 export API_KEY=your-api-key
 export BASE_URL=https://api.example.com
 uvx mcix run
-```
 ```
 
 ## Integration with MCP Clients
