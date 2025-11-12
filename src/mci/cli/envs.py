@@ -84,9 +84,10 @@ def extract_env_vars_from_schema(schema_path: str) -> dict[str, list[str]]:
                     if var not in env_vars:
                         env_vars[var] = set()
                     env_vars[var].add(toolset_name)
-            except Exception:
+            except Exception as e:
                 # Warn but continue if toolset file is invalid
-                pass
+                console = Console()
+                console.print(f"[yellow]⚠[/yellow] Warning: Could not load toolset '{toolset_name}': {e}", style="yellow")
 
     # Scan MCP servers
     mcp_servers = main_schema.get("mcp_servers", {})
