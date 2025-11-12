@@ -352,7 +352,7 @@ def test_get_env_with_dotenv_no_additional():
 
 
 def test_env_mci_priority_over_env():
-    """Test that .env.mci files take precedence over .env files."""
+    """Test that when .env.mci files exist, .env files are not loaded."""
     with tempfile.TemporaryDirectory() as tmpdir:
         tmpdir_path = Path(tmpdir)
 
@@ -360,20 +360,20 @@ def test_env_mci_priority_over_env():
         env_file = tmpdir_path / ".env"
         env_file.write_text("API_KEY=from-env\nENV_ONLY=env-value\n")
 
-        # Create .env.mci file (should override API_KEY)
+        # Create .env.mci file (should take priority, .env not loaded)
         env_mci_file = tmpdir_path / ".env.mci"
         env_mci_file.write_text("API_KEY=from-env-mci\nMCI_ONLY=mci-value\n")
 
         env_vars = find_and_merge_dotenv_files(tmpdir_path)
 
-        # .env.mci should override .env for API_KEY
+        # Only .env.mci should be loaded
         assert env_vars["API_KEY"] == "from-env-mci"
-        assert env_vars["ENV_ONLY"] == "env-value"
+        assert "ENV_ONLY" not in env_vars  # .env is not loaded
         assert env_vars["MCI_ONLY"] == "mci-value"
 
 
 def test_mci_env_mci_priority():
-    """Test that ./mci/.env.mci takes precedence over ./mci/.env."""
+    """Test that when ./mci/.env.mci exists, ./mci/.env is not loaded."""
     with tempfile.TemporaryDirectory() as tmpdir:
         tmpdir_path = Path(tmpdir)
 
@@ -385,20 +385,20 @@ def test_mci_env_mci_priority():
         mci_env = mci_dir / ".env"
         mci_env.write_text("SHARED_KEY=from-mci-env\nMCI_ENV_ONLY=mci-env\n")
 
-        # Create ./mci/.env.mci (should override SHARED_KEY)
+        # Create ./mci/.env.mci (should take priority, ./mci/.env not loaded)
         mci_env_mci = mci_dir / ".env.mci"
         mci_env_mci.write_text("SHARED_KEY=from-mci-env-mci\nMCI_MCI_ONLY=mci-mci\n")
 
         env_vars = find_and_merge_dotenv_files(tmpdir_path)
 
-        # ./mci/.env.mci should override ./mci/.env for SHARED_KEY
+        # Only ./mci/.env.mci should be loaded
         assert env_vars["SHARED_KEY"] == "from-mci-env-mci"
-        assert env_vars["MCI_ENV_ONLY"] == "mci-env"
+        assert "MCI_ENV_ONLY" not in env_vars  # ./mci/.env is not loaded
         assert env_vars["MCI_MCI_ONLY"] == "mci-mci"
 
 
 def test_full_precedence_with_env_mci():
-    """Test full precedence order with all four .env files."""
+    """Test precedence order when .env.mci files exist (only .env.mci files loaded)."""
     with tempfile.TemporaryDirectory() as tmpdir:
         tmpdir_path = Path(tmpdir)
 
@@ -406,19 +406,15 @@ def test_full_precedence_with_env_mci():
         mci_dir = tmpdir_path / "mci"
         mci_dir.mkdir()
 
-        # 1. ./mci/.env (lowest priority)
+        # These .env files should NOT be loaded when .env.mci files exist
         mci_env = mci_dir / ".env"
         mci_env.write_text("KEY=mci-env\nMCI_ENV=1\n")
-
-        # 2. ./mci/.env.mci
-        mci_env_mci = mci_dir / ".env.mci"
-        mci_env_mci.write_text("KEY=mci-env-mci\nMCI_MCI=2\n")
-
-        # 3. root .env
         root_env = tmpdir_path / ".env"
         root_env.write_text("KEY=root-env\nROOT_ENV=3\n")
 
-        # 4. root .env.mci (highest priority)
+        # These .env.mci files SHOULD be loaded
+        mci_env_mci = mci_dir / ".env.mci"
+        mci_env_mci.write_text("KEY=mci-env-mci\nMCI_MCI=2\n")
         root_env_mci = tmpdir_path / ".env.mci"
         root_env_mci.write_text("KEY=root-env-mci\nROOT_MCI=4\n")
 
@@ -426,9 +422,11 @@ def test_full_precedence_with_env_mci():
 
         # root .env.mci should win for KEY
         assert env_vars["KEY"] == "root-env-mci"
-        assert env_vars["MCI_ENV"] == "1"
+        # .env files should not be loaded
+        assert "MCI_ENV" not in env_vars
+        assert "ROOT_ENV" not in env_vars
+        # Only .env.mci files loaded
         assert env_vars["MCI_MCI"] == "2"
-        assert env_vars["ROOT_ENV"] == "3"
         assert env_vars["ROOT_MCI"] == "4"
 
 

@@ -1,13 +1,13 @@
 """
 dotenv.py - Environment variable file parsing utilities
 
-This module provides functionality to parse .env files in standard dotenv format
+This module provides functionality to parse .env files using the python-dotenv library
 and merge environment variables from multiple sources. It supports:
-- KEY=VALUE format
+- Standard .env format via python-dotenv
 - Comments starting with #
 - Blank lines
 - Export keyword (which is ignored)
-- Basic quoted values
+- Quoted values
 
 The module is used to automatically load .env files from the project root
 and ./mci directory when initializing MCI configurations. It supports both
@@ -16,91 +16,64 @@ configuration.
 """
 
 import os
-import re
 from pathlib import Path
+
+from dotenv import dotenv_values
 
 
 def parse_dotenv_file(file_path: str | Path) -> dict[str, str]:
     """
     Parse a .env file and return a dictionary of environment variables.
 
-    This function parses .env files in standard dotenv format:
+    This function uses python-dotenv to parse .env files, which supports:
     - KEY=VALUE format
     - Lines starting with # are comments (ignored)
     - Blank lines are ignored
     - Export keyword is ignored (e.g., "export KEY=VALUE" is treated as "KEY=VALUE")
     - Values can be quoted with single or double quotes
-    - Basic variable expansion is NOT supported (for security)
+    - Variable expansion and interpolation (if needed)
 
     Args:
         file_path: Path to the .env file to parse
 
     Returns:
-        Dictionary of environment variable key-value pairs
+        Dictionary of environment variable key-value pairs (excluding None values)
 
     Example:
         >>> env_vars = parse_dotenv_file(".env")
         >>> print(env_vars.get("API_KEY"))
         'my-secret-key'
     """
-    env_vars: dict[str, str] = {}
     file_path = Path(file_path)
 
     if not file_path.exists():
-        return env_vars
+        return {}
 
     try:
-        with open(file_path, encoding="utf-8") as f:
-            for line in f:
-                # Strip whitespace
-                line = line.strip()
-
-                # Skip empty lines and comments
-                if not line or line.startswith("#"):
-                    continue
-
-                # Remove 'export ' prefix if present
-                if line.startswith("export "):
-                    line = line[7:].strip()
-
-                # Parse KEY=VALUE format
-                match = re.match(r"^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$", line)
-                if match:
-                    key = match.group(1)
-                    value = match.group(2)
-
-                    # Remove quotes if present (ensure matching quote types)
-                    if len(value) >= 2:
-                        if value.startswith('"') and value.endswith('"'):
-                            value = value[1:-1]
-                        elif value.startswith("'") and value.endswith("'"):
-                            value = value[1:-1]
-
-                    env_vars[key] = value
-                # If line doesn't match format, silently skip it
-                # (could be malformed or a directive we don't support)
-
+        # Use dotenv_values to parse the file
+        # This returns a dict with all variables, including None for empty values
+        env_dict = dotenv_values(file_path)
+        # Filter out None values and convert to strings
+        return {k: str(v) for k, v in env_dict.items() if v is not None}
     except (OSError, UnicodeDecodeError):
         # If we can't read the file, return empty dict (silent failure)
         # This maintains the "no error if .env is missing" requirement
-        # We catch specific exceptions related to file I/O
-        pass
-
-    return env_vars
+        return {}
 
 
 def find_and_merge_dotenv_files(project_root: str | Path | None = None) -> dict[str, str]:
     """
     Find and merge .env files from project root and ./mci directory.
 
-    This function looks for .env files in two locations with the following priority:
-    1. {project_root}/.env.mci (highest priority for MCI-specific configs)
-    2. {project_root}/.env (project-level configs)
-    3. {project_root}/mci/.env.mci (MCI library-level MCI-specific configs)
-    4. {project_root}/mci/.env (lowest priority - MCI library defaults)
+    This function looks for .env files with the following priority order:
+    1. Check for .env.mci files first (MCI-specific configs have priority)
+       a. {project_root}/mci/.env.mci (MCI library MCI-specific)
+       b. {project_root}/.env.mci (project MCI-specific - highest priority)
+    2. If no .env.mci files exist, check for .env files
+       a. {project_root}/mci/.env (MCI library defaults)
+       b. {project_root}/.env (project-level configs)
 
-    Files are checked in order at each location (.env.mci first, then .env).
-    Variables from higher priority files override those from lower priority files.
+    Variables from files loaded later override those from earlier files.
 
     Args:
         project_root: Path to the project root directory. If None, uses current directory.
@@ -119,30 +92,37 @@ def find_and_merge_dotenv_files(project_root: str | Path | None = None) -> dict[
 
     merged_env: dict[str, str] = {}
 
-    # Priority order (lowest to highest):
-    # 1. ./mci/.env (library defaults - lowest priority)
-    mci_env_path = project_root / "mci" / ".env"
-    if mci_env_path.exists():
-        mci_env_vars = parse_dotenv_file(mci_env_path)
-        merged_env.update(mci_env_vars)
-
-    # 2. ./mci/.env.mci (library MCI-specific configs)
+    # Check for .env.mci files first (MCI-specific configs)
     mci_env_mci_path = project_root / "mci" / ".env.mci"
-    if mci_env_mci_path.exists():
-        mci_env_mci_vars = parse_dotenv_file(mci_env_mci_path)
-        merged_env.update(mci_env_mci_vars)
-
-    # 3. .env (project root - higher priority)
-    root_env_path = project_root / ".env"
-    if root_env_path.exists():
-        root_env_vars = parse_dotenv_file(root_env_path)
-        merged_env.update(root_env_vars)
-
-    # 4. .env.mci (project root MCI-specific - highest priority)
     root_env_mci_path = project_root / ".env.mci"
-    if root_env_mci_path.exists():
-        root_env_mci_vars = parse_dotenv_file(root_env_mci_path)
-        merged_env.update(root_env_mci_vars)
+
+    has_env_mci = mci_env_mci_path.exists() or root_env_mci_path.exists()
+
+    if has_env_mci:
+        # Priority order for .env.mci files (lowest to highest):
+        # 1. ./mci/.env.mci (library MCI-specific)
+        if mci_env_mci_path.exists():
+            mci_env_mci_vars = parse_dotenv_file(mci_env_mci_path)
+            merged_env.update(mci_env_mci_vars)
+
+        # 2. .env.mci (project root MCI-specific - highest priority)
+        if root_env_mci_path.exists():
+            root_env_mci_vars = parse_dotenv_file(root_env_mci_path)
+            merged_env.update(root_env_mci_vars)
+    else:
+        # No .env.mci files found, check for .env files
+        # Priority order for .env files (lowest to highest):
+        # 1. ./mci/.env (library defaults)
+        mci_env_path = project_root / "mci" / ".env"
+        if mci_env_path.exists():
+            mci_env_vars = parse_dotenv_file(mci_env_path)
+            merged_env.update(mci_env_vars)
+
+        # 2. .env (project root - higher priority)
+        root_env_path = project_root / ".env"
+        if root_env_path.exists():
+            root_env_vars = parse_dotenv_file(root_env_path)
+            merged_env.update(root_env_vars)
 
     return merged_env
 
@@ -154,12 +134,15 @@ def get_env_with_dotenv(
     Get complete environment variables including system, .env files, and additional vars.
 
     The precedence order (lowest to highest):
-    1. ./mci/.env (library defaults)
-    2. ./mci/.env.mci (library MCI-specific)
-    3. {project_root}/.env (project-level)
-    4. {project_root}/.env.mci (project MCI-specific)
-    5. System environment variables (os.environ)
-    6. Additional environment variables passed as argument (highest)
+    - If .env.mci files exist:
+      1. ./mci/.env.mci (library MCI-specific)
+      2. {project_root}/.env.mci (project MCI-specific)
+    - If no .env.mci files exist:
+      1. ./mci/.env (library defaults)
+      2. {project_root}/.env (project-level)
+    - Then:
+      3. System environment variables (os.environ)
+      4. Additional environment variables passed as argument (highest)
 
     Args:
         project_root: Path to the project root directory. If None, uses current directory.

@@ -35,11 +35,16 @@ class MCIClientWrapper:
         Initialize the wrapper with an MCIClient instance.
 
         If auto_load_dotenv is True (default), automatically loads environment variables
-        from .env files in the project root and ./mci directory. The precedence order is:
-        1. ./mci/.env (lowest priority)
-        2. Project root .env
-        3. System environment variables
-        4. env_vars argument (highest priority)
+        from .env and .env.mci files. Priority order:
+        - If .env.mci files exist:
+          1. ./mci/.env.mci (library MCI-specific)
+          2. Project root .env.mci (project MCI-specific)
+        - If no .env.mci files exist:
+          1. ./mci/.env (library defaults)
+          2. Project root .env (project-level)
+        - Then:
+          3. System environment variables
+          4. env_vars argument (highest priority)
 
         Args:
             file_path: Path to the MCI schema file (.json, .yaml, or .yml)
