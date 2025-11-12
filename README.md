@@ -54,12 +54,20 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
    uvx mcix list
    ```
 
-3. **Validate your configuration**:
+3. **Check required environment variables**:
+   ```bash
+   uvx mcix envs
+   
+   # Generate .env template
+   uvx mcix envs --format=env
+   ```
+
+4. **Validate your configuration**:
    ```bash
    uvx mcix validate
    ```
 
-4. **Run an MCP server**:
+5. **Run an MCP server**:
    ```bash
    uvx mcix run
    ```
@@ -165,6 +173,60 @@ uvx mcix list --format yaml
 - `toolsets:ts1,ts2` - Include tools from specific toolsets
 - `without-tags:tag1,tag2` - Exclude tools with these tags
 
+### `mci envs`
+
+List all environment variables referenced in your MCI configuration.
+
+```bash
+# Show environment variables in table format
+uvx mcix envs
+
+# Generate .env.example.mci file
+uvx mcix envs --format=env
+
+# Check specific schema file
+uvx mcix envs --file=custom.mci.json
+```
+
+The `envs` command scans your entire MCI schema including:
+- Main schema file tools and configuration
+- All referenced toolsets
+- MCP server configurations
+
+**Output formats**:
+- `table` (default) - Display variables in a formatted table with locations
+- `env` - Generate `.env.example.mci` file with all variables
+
+**Example table output**:
+```
+┌─────────────────┬──────────────────┐
+│ Variable        │ Used In          │
+├─────────────────┼──────────────────┤
+│ API_KEY         │ main, weather    │
+│ DB_URL          │ database         │
+│ GITHUB_TOKEN    │ mcp:github       │
+└─────────────────┴──────────────────┘
+```
+
+**Example .env file output**:
+```bash
+# .env.example.mci
+# Environment variables used in MCI configuration
+#
+# Copy this file to .env.mci and fill in your values
+
+# Used in: main, weather
+API_KEY=
+
+# Used in: database
+DB_URL=
+
+# Used in: mcp:github
+GITHUB_TOKEN=
+```
+
+> **Tip**: Run `uvx mcix envs --format=env` to generate a template `.env.example.mci` file, then copy it to `.env.mci` and fill in your values. Commit `.env.example.mci` to your repository so team members know what environment variables are needed.
+
 ### `mci validate`
 
 Validate your MCI schema for correctness.
@@ -246,16 +308,22 @@ uvx mcix add api-tools --filter=tags:production
 # 3. Preview your tools
 uvx mcix list --verbose
 
-# 4. Validate everything
+# 4. Check environment variables and generate .env template
+uvx mcix envs --format=env
+
+# 5. Validate everything
 uvx mcix validate
 
-# 5. Test with MCP server
+# 6. Test with MCP server
 uvx mcix run --filter tags:development
 ```
 
 ### Production Deployment
 
 ```bash
+# Check required environment variables
+uvx mcix envs
+
 # Validate before deployment
 uvx mcix validate
 
