@@ -143,5 +143,5 @@ def install(yaml: bool):
     click.echo()
     click.echo("Next steps:")
     click.echo("  1. Review the generated configuration files")
-    click.echo("  2. Run 'mci list' to see available tools")
-    click.echo("  3. Run 'mci validate' to check your configuration")
+    click.echo("  2. Run 'mcix list' to see available tools")
+    click.echo("  3. Run 'mcix validate' to check your configuration")

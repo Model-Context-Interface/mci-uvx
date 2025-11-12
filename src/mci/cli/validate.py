@@ -1,7 +1,7 @@
 """
 validate.py - CLI command to validate MCI schemas
 
-This module provides the `mci validate` command which checks MCI schema
+This module provides the `mcix validate` command which checks MCI schema
 correctness using mci-py's built-in validation and provides user-friendly
 error and warning messages.
 """
@@ -44,9 +44,9 @@ def validate(file: str | None, env: tuple[str, ...]) -> None:
     - MCP commands not in PATH
 
     Examples:
-        mci validate                        # Validate default mci.json/mci.yaml
-        mci validate --file custom.mci.json # Validate specific file
-        mci validate -e API_KEY=123         # Provide environment variables
+        mcix validate                        # Validate default mci.json/mci.yaml
+        mcix validate --file custom.mci.json # Validate specific file
+        mcix validate -e API_KEY=123         # Provide environment variables
     """
     formatter = ErrorFormatter()
 
@@ -72,7 +72,7 @@ def validate(file: str | None, env: tuple[str, ...]) -> None:
         if file is None:
             formatter.console.print("[red]❌ No MCI schema file found in current directory[/red]\n")
             formatter.console.print(
-                "[yellow]💡 Run 'mci install' to create a default mci.json file[/yellow]"
+                "[yellow]💡 Run 'mcix install' to create a default mci.json file[/yellow]"
             )
             sys.exit(1)
 
@@ -86,7 +86,7 @@ def validate(file: str | None, env: tuple[str, ...]) -> None:
         if result.errors:
             formatter.format_validation_errors(result.errors)
             formatter.console.print(
-                "\n[yellow]💡 Fix the errors above and run 'mci validate' again[/yellow]\n"
+                "\n[yellow]💡 Fix the errors above and run 'mcix validate' again[/yellow]\n"
             )
             sys.exit(1)
 

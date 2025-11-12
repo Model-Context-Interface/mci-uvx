@@ -1,7 +1,7 @@
 """
 add.py - CLI command to add toolset references to MCI schemas
 
-This module provides the `mci add` command which adds toolset references
+This module provides the `mcix add` command which adds toolset references
 to MCI schema files with optional filtering, while preserving the original
 file format (JSON or YAML).
 """
@@ -43,19 +43,19 @@ def add(toolset_name: str, filter: str | None, path: str | None) -> None:
 
         \b
         # Add a toolset without filter
-        mci add weather-tools
+        mcix add weather-tools
 
         \b
         # Add a toolset with "only" filter
-        mci add analytics --filter=only:Tool1,Tool2
+        mcix add analytics --filter=only:Tool1,Tool2
 
         \b
         # Add a toolset with "tags" filter
-        mci add api-tools --filter=tags:api,database
+        mcix add api-tools --filter=tags:api,database
 
         \b
         # Add to a custom file
-        mci add weather-tools --path=custom.mci.json
+        mcix add weather-tools --path=custom.mci.json
     """
     console = Console()
 
@@ -65,7 +65,7 @@ def add(toolset_name: str, filter: str | None, path: str | None) -> None:
         schema_file = file_finder.find_mci_file()
         if schema_file is None:
             console.print("[red]❌ No MCI schema file found in current directory[/red]\n")
-            console.print("[yellow]💡 Run 'mci install' to create a default mci.json file[/yellow]")
+            console.print("[yellow]💡 Run 'mcix install' to create a default mci.json file[/yellow]")
             sys.exit(1)
     else:
         schema_file = path

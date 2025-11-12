@@ -57,22 +57,22 @@ def list_command(file: str | None, filter: str | None, format: str, verbose: boo
     Examples:
 
         # List all tools in table format
-        mci list
+        mcix list
 
         # List tools from specific file
-        mci list --file=./custom.mci.json
+        mcix list --file=./custom.mci.json
 
         # List tools with filter
-        mci list --filter=tags:api,database
+        mcix list --filter=tags:api,database
 
         # List tools with verbose output
-        mci list --verbose
+        mcix list --verbose
 
         # Export tools to JSON file
-        mci list --format=json
+        mcix list --format=json
 
         # Export tools to YAML file with verbose info
-        mci list --format=yaml --verbose
+        mcix list --format=yaml --verbose
     """
     console = Console()
 
@@ -84,7 +84,7 @@ def list_command(file: str | None, filter: str | None, format: str, verbose: boo
             if file is None:
                 console.print(
                     "[red]✗[/red] No MCI schema file found. "
-                    "Run 'mci install' to create one or specify --file.",
+                    "Run 'mcix install' to create one or specify --file.",
                     style="red",
                 )
                 raise click.Abort()

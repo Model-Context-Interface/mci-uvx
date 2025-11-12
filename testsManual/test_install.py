@@ -56,7 +56,7 @@ def test_install_json():
         print(f"Testing in: {tmpdir}")
 
         # Run install command
-        result = run_command("uv run mci install", cwd=tmpdir)
+        result = run_command("uv run mcix install", cwd=tmpdir)
 
         if result.returncode != 0:
             print_error(f"Install command failed: {result.stderr}")
@@ -106,7 +106,7 @@ def test_install_yaml():
         print(f"Testing in: {tmpdir}")
 
         # Run install command with --yaml flag
-        result = run_command("uv run mci install --yaml", cwd=tmpdir)
+        result = run_command("uv run mcix install --yaml", cwd=tmpdir)
 
         if result.returncode != 0:
             print_error(f"Install command failed: {result.stderr}")
@@ -144,7 +144,7 @@ def test_install_existing_files():
 
         # Run install first time
         print("Running install first time...")
-        result1 = run_command("uv run mci install", cwd=tmpdir)
+        result1 = run_command("uv run mcix install", cwd=tmpdir)
         if result1.returncode != 0:
             print_error(f"First install failed: {result1.stderr}")
             return False
@@ -152,7 +152,7 @@ def test_install_existing_files():
 
         # Run install second time
         print("\nRunning install second time...")
-        result2 = run_command("uv run mci install", cwd=tmpdir)
+        result2 = run_command("uv run mcix install", cwd=tmpdir)
         if result2.returncode != 0:
             print_error(f"Second install failed: {result2.stderr}")
             return False
@@ -171,7 +171,7 @@ def test_install_help():
     """Test install command help."""
     print_section("Test 4: Install command help")
 
-    result = run_command("uv run mci install --help")
+    result = run_command("uv run mcix install --help")
 
     if result.returncode != 0:
         print_error(f"Help command failed: {result.stderr}")

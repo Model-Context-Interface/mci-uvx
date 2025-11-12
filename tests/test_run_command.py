@@ -1,5 +1,5 @@
 """
-Feature test for the mci run command.
+Feature test for the mcix run command.
 
 Tests the complete workflow of running an MCP server from an MCI schema,
 including loading, filtering, and server creation.

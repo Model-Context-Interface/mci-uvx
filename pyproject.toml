@@ -39,7 +39,7 @@ classifiers = [
 
 dependencies = [
     "click>=8.3.0",
-    "mci-py>=1.1.4",
+    "mci-py>=1.2",
     "mcp>=1.19.0",
     "pytest-cov>=7.0.0",
     "python-dotenv>=1.2.1",

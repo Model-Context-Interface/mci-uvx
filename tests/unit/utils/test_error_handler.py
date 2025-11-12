@@ -18,7 +18,7 @@ def test_format_file_not_found_error():
     assert "❌" in formatted
     assert "Schema file not found" in formatted
     assert "💡 Suggestions:" in formatted
-    assert "mci install" in formatted
+    assert "mcix install" in formatted
 
 
 def test_format_unsupported_file_extension_error():
@@ -45,7 +45,7 @@ def test_format_schema_load_error():
     
     assert "❌" in formatted
     assert "Failed to load schema" in formatted
-    assert "mci validate" in formatted
+    assert "mcix validate" in formatted
 
 
 def test_format_tool_not_found_error():
@@ -56,7 +56,7 @@ def test_format_tool_not_found_error():
     
     assert "❌" in formatted
     assert "Tool not found" in formatted
-    assert "mci list" in formatted
+    assert "mcix list" in formatted
 
 
 def test_format_template_variable_error():
@@ -78,7 +78,7 @@ def test_format_validation_error():
     
     assert "❌" in formatted
     assert "Schema validation error" in formatted
-    assert "mci validate" in formatted
+    assert "mcix validate" in formatted
 
 
 def test_format_generic_mci_error():
@@ -108,7 +108,7 @@ def test_format_file_not_found_helper():
     
     assert "❌" in formatted
     assert "File not found: mci.json" in formatted
-    assert "mci install" in formatted
+    assert "mcix install" in formatted
     assert "💡 Suggestions:" in formatted
 
 
@@ -119,7 +119,7 @@ def test_format_validation_error_helper():
     assert "❌" in formatted
     assert "Validation Error" in formatted
     assert "Missing required field: name" in formatted
-    assert "mci validate" in formatted
+    assert "mcix validate" in formatted
 
 
 def test_error_messages_contain_helpful_suggestions():
@@ -127,11 +127,11 @@ def test_error_messages_contain_helpful_suggestions():
     test_cases = [
         (
             MCIClientError("No such file or directory"),
-            ["mci install", "file path"]
+            ["mcix install", "file path"]
         ),
         (
             MCIClientError("Tool not found: test_tool"),
-            ["mci list", "tool name"]
+            ["mcix list", "tool name"]
         ),
         (
             MCIClientError("Template variable not found: env.VAR"),
