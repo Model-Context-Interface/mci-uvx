@@ -43,11 +43,11 @@ src/mci/
 ├── mci.py               # Main CLI entry point with Click group
 ├── cli/                 # CLI command modules
 │   ├── __init__.py
-│   ├── install.py       # mci install command
-│   ├── list.py          # mci list command
-│   ├── validate.py      # mci validate command
-│   ├── add.py           # mci add command
-│   ├── run.py           # mci run command
+│   ├── install.py       # mcix install command
+│   ├── list.py          # mcix list command
+│   ├── validate.py      # mcix validate command
+│   ├── add.py           # mcix add command
+│   ├── run.py           # mcix run command
 │   └── formatters/      # Output formatters (JSON, YAML, table)
 ├── core/                # Core business logic
 │   ├── __init__.py

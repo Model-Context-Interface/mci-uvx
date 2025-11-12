@@ -193,7 +193,7 @@ def envs_command(file: str | None, format: str):
             if file is None:
                 console.print(
                     "[red]✗[/red] No MCI schema file found. "
-                    "Run 'mci install' to create one or specify --file.",
+                    "Run 'mcix install' to create one or specify --file.",
                     style="red",
                 )
                 raise click.Abort()

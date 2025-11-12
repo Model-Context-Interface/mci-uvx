@@ -259,7 +259,7 @@ Return filtered tools
 ### MCP Server Creation Flow
 
 ```
-User runs `mci run`
+User runs `mcix run`
     ↓
 Load MCI schema via MCIConfig
     ↓

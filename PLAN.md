@@ -135,7 +135,7 @@ None for this stage.
 
 ---
 
-## Stage 3: CLI Command: `mci install`
+## Stage 3: CLI Command: `mcix install`
 
 ### Goal
 Implement the `install` command to initialize MCI project structure.
@@ -158,7 +158,7 @@ src/mci/cli/
 - **src/mci/mci.py** - Register install command
 
 ### Classes/Functions
-- `install_command(yaml: bool = False)` - Click command for `mci install`
+- `install_command(yaml: bool = False)` - Click command for `mcix install`
 - `create_mci_file(format: str) -> None` - Create main MCI file
 - `create_mci_directory() -> None` - Create ./mci directory structure
 - `create_example_toolset() -> None` - Create example.mci.json
@@ -301,7 +301,7 @@ src/mci/core/
 
 ---
 
-## Stage 5: CLI Command: `mci list`
+## Stage 5: CLI Command: `mcix list`
 
 ### Goal
 Implement the `list` command to display available tools.
@@ -382,7 +382,7 @@ src/mci/cli/
 
 ---
 
-## Stage 6: CLI Command: `mci validate`
+## Stage 6: CLI Command: `mcix validate`
 
 ### Goal
 Implement the `validate` command to check MCI schema correctness using mci-py's built-in validation.
@@ -409,7 +409,7 @@ src/mci/core/
 - **src/mci/mci.py** - Register validate command
 
 ### Classes/Functions
-- `validate_command(file: str)` - Click command for `mci validate`
+- `validate_command(file: str)` - Click command for `mcix validate`
 - `MCIValidator` class with methods:
   - `validate_schema(file_path: str) -> ValidationResult` - Validate using MCIClient
   - `check_toolset_files() -> list[ValidationWarning]` - Check toolset file existence
@@ -449,7 +449,7 @@ src/mci/core/
 
 ---
 
-## Stage 7: CLI Command: `mci add`
+## Stage 7: CLI Command: `mcix add`
 
 ### Goal
 Implement the `add` command to add toolset references to MCI files.
@@ -573,7 +573,7 @@ src/mci/core/
 
 ---
 
-## Stage 9: CLI Command: `mci run` (STDIO Only)
+## Stage 9: CLI Command: `mcix run` (STDIO Only)
 
 ### Goal
 Implement the `run` command to launch MCP servers via STDIO that serve MCI tools.
@@ -605,7 +605,7 @@ src/mci/core/
 - **src/mci/mci.py** - Register run command
 
 ### Classes/Functions
-- `run_command(file: str, filter: str)` - Click command for `mci run`
+- `run_command(file: str, filter: str)` - Click command for `mcix run`
 - `DynamicMCPServer` class with async methods:
   - `async create_from_mci_schema(schema_path: str, filter_spec: str = None) -> Server`
     - Load tools using MCIClient from Stage 4
@@ -819,7 +819,7 @@ Stage 2 (Config Loading)
 
 These features are documented in PRD.md but not included in the initial 10 stages:
 
-1. **Stage 11** (Future): `mci run --port` for HTTP-based MCP servers
+1. **Stage 11** (Future): `mcix run --port` for HTTP-based MCP servers
 2. **Stage 12** (Future): `mci test` command to simulate tool execution
 3. **Stage 13** (Future): Plugin system for custom commands
 4. **Stage 14** (Future): Interactive mode with prompts

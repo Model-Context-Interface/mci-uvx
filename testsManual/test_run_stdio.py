@@ -24,7 +24,7 @@ def create_demo_schema() -> str:
         "schemaVersion": "1.0",
         "metadata": {
             "name": "Demo MCP Server",
-            "description": "Demonstration MCP server for testing mci run command",
+            "description": "Demonstration MCP server for testing mcix run command",
         },
         "tools": [
             {
@@ -209,10 +209,10 @@ async def test_server_creation_and_tools():
         print("The server is ready to run with STDIO transport.")
         print()
         print("To run this server from the CLI:")
-        print(f"  uv run mci run --file={schema_path}")
+        print(f"  uv run mcix run --file={schema_path}")
         print()
         print("To run with filter:")
-        print(f"  uv run mci run --file={schema_path} --filter=tags:math")
+        print(f"  uv run mcix run --file={schema_path} --filter=tags:math")
         print()
         print("=" * 80)
 
@@ -228,25 +228,25 @@ async def demonstrate_cli_usage():
     print("CLI Usage Patterns")
     print("=" * 80)
     print()
-    print("The mci run command supports the following usage patterns:")
+    print("The mcix run command supports the following usage patterns:")
     print()
     print("1. Run with default mci.json/mci.yaml:")
-    print("   $ uv run mci run")
+    print("   $ uv run mcix run")
     print()
     print("2. Run with custom file:")
-    print("   $ uv run mci run --file=custom.mci.json")
+    print("   $ uv run mcix run --file=custom.mci.json")
     print()
     print("3. Run with tag filter:")
-    print("   $ uv run mci run --filter=tags:api,database")
+    print("   $ uv run mcix run --filter=tags:api,database")
     print()
     print("4. Run with only specific tools:")
-    print("   $ uv run mci run --filter=only:tool1,tool2")
+    print("   $ uv run mcix run --filter=only:tool1,tool2")
     print()
     print("5. Run excluding specific tools:")
-    print("   $ uv run mci run --filter=except:admin_tools")
+    print("   $ uv run mcix run --filter=except:admin_tools")
     print()
     print("6. Run with toolset filter:")
-    print("   $ uv run mci run --filter=toolsets:weather,news")
+    print("   $ uv run mcix run --filter=toolsets:weather,news")
     print()
     print("Press Ctrl+C to stop the server when running.")
     print("=" * 80)

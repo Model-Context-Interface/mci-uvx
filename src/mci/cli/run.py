@@ -1,7 +1,7 @@
 """
 run.py - Run command for starting MCP servers from MCI schemas
 
-This module implements the `mci run` command, which launches an MCP server
+This module implements the `mcix run` command, which launches an MCP server
 over STDIO that dynamically serves tools from an MCI schema file. The server
 loads tools using MCIClient, converts them to MCP format, and delegates
 execution back to MCIClient.
@@ -51,22 +51,22 @@ def run(file: str | None, filter: str | None):
     Examples:
 
         # Run server with default mci.json or mci.yaml
-        mci run
+        mcix run
 
         # Run server with specific file
-        mci run --file=./custom.mci.json
+        mcix run --file=./custom.mci.json
 
         # Run server with filtered tools
-        mci run --filter=tags:api,database
+        mcix run --filter=tags:api,database
 
         # Run server with only specific tools
-        mci run --filter=only:tool1,tool2
+        mcix run --filter=only:tool1,tool2
 
         # Run server excluding specific tools
-        mci run --filter=except:tool3,tool4
+        mcix run --filter=except:tool3,tool4
 
         # Run server with tools from specific toolsets
-        mci run --filter=toolsets:weather,database
+        mcix run --filter=toolsets:weather,database
     """
     console = Console()
 
@@ -78,7 +78,7 @@ def run(file: str | None, filter: str | None):
             if file is None:
                 console.print(
                     "[red]✗[/red] No MCI schema file found. "
-                    "Run 'mci install' to create one or specify --file.",
+                    "Run 'mcix install' to create one or specify --file.",
                     style="red",
                 )
                 raise click.Abort()

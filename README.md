@@ -119,7 +119,7 @@ Toolsets are collections of related tools stored in the `mci/` directory. They c
 
 ### MCP Server Integration
 
-The `mci run` command creates an MCP server that:
+The `mcix run` command creates an MCP server that:
 
 - Dynamically loads tools from your MCI schema
 - Serves them via the Model Context Protocol
@@ -128,7 +128,7 @@ The `mci run` command creates an MCP server that:
 
 ## Available Commands
 
-### `mci install`
+### `mcix install`
 
 Bootstrap a new MCI project with starter configuration.
 
@@ -145,7 +145,7 @@ Creates:
 - `mci/` directory - Library of toolsets
 - `mci/.gitignore` - Excludes generated files
 
-### `mci list`
+### `mcix list`
 
 Display all available tools from your configuration.
 
@@ -227,7 +227,7 @@ GITHUB_TOKEN=
 
 > **Tip**: Run `uvx mcix envs --format=env` to generate a template `.env.example.mci` file, then copy it to `.env.mci` and fill in your values. Commit `.env.example.mci` to your repository so team members know what environment variables are needed.
 
-### `mci validate`
+### `mcix validate`
 
 Validate your MCI schema for correctness.
 
@@ -247,7 +247,7 @@ Checks for:
 - Toolset references
 - MCP command availability (warnings)
 
-### `mci add`
+### `mcix add`
 
 Add toolset references to your schema.
 
@@ -267,7 +267,7 @@ uvx mcix add weather-tools --path=custom.mci.json
 
 Automatically preserves your file format (JSON stays JSON, YAML stays YAML).
 
-### `mci run`
+### `mcix run`
 
 Launch an MCP server that dynamically serves your tools.
 
@@ -837,7 +837,7 @@ uvx mcix run
 
 ## Integration with MCP Clients
 
-The `mci run` command creates an MCP-compliant server that can be used with:
+The `mcix run` command creates an MCP-compliant server that can be used with:
 
 - **Claude Desktop**: Configure as an MCP server in settings
 - **MCP CLI tools**: Connect via STDIO transport

@@ -48,7 +48,7 @@ class ErrorHandler:
                 f"Error: {error_str}\n\n"
                 f"💡 Suggestions:\n"
                 f"  • Check that the file path is correct\n"
-                f"  • Run 'mci install' to create a default mci.json file\n"
+                f"  • Run 'mcix install' to create a default mci.json file\n"
                 f"  • Use --file option to specify a different schema file"
             )
 
@@ -68,7 +68,7 @@ class ErrorHandler:
                 f"Error: {error_str}\n\n"
                 f"💡 Suggestions:\n"
                 f"  • Check that the file contains valid JSON or YAML\n"
-                f"  • Run 'mci validate' to see detailed validation errors\n"
+                f"  • Run 'mcix validate' to see detailed validation errors\n"
                 f"  • Check for syntax errors like missing commas or brackets"
             )
 
@@ -77,7 +77,7 @@ class ErrorHandler:
                 f"❌ Tool not found\n\n"
                 f"Error: {error_str}\n\n"
                 f"💡 Suggestions:\n"
-                f"  • Run 'mci list' to see all available tools\n"
+                f"  • Run 'mcix list' to see all available tools\n"
                 f"  • Check the tool name for typos\n"
                 f"  • Ensure the tool is defined in your schema"
             )
@@ -97,7 +97,7 @@ class ErrorHandler:
                 f"❌ Schema validation error\n\n"
                 f"Error: {error_str}\n\n"
                 f"💡 Suggestions:\n"
-                f"  • Run 'mci validate' for detailed validation errors\n"
+                f"  • Run 'mcix validate' for detailed validation errors\n"
                 f"  • Check that all required fields are present\n"
                 f"  • Verify that field types match the schema specification"
             )
@@ -147,7 +147,7 @@ class ErrorHandler:
         return (
             f"❌ File not found: {file_path}\n\n"
             f"💡 Suggestions:\n"
-            f"  • Run 'mci install' to create a default mci.json file\n"
+            f"  • Run 'mcix install' to create a default mci.json file\n"
             f"  • Check that you're in the correct directory\n"
             f"  • Use --file option to specify a different schema file"
         )
@@ -170,5 +170,5 @@ class ErrorHandler:
         return (
             f"❌ Validation Error\n\n"
             f"{message}\n\n"
-            f"💡 Run 'mci validate' for detailed validation information"
+            f"💡 Run 'mcix validate' for detailed validation information"
         )
